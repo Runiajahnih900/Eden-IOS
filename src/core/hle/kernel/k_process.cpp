@@ -1296,6 +1296,8 @@ void KProcess::InitializeInterfaces() {
     return;
 #endif
 
+#if !defined(YUZU_PLATFORM_IOS)
+
 #ifdef HAS_NCE
     if (this->IsApplication() && Settings::IsNceEnabled()) {
         for (size_t i = 0; i < Core::Hardware::NUM_CPU_CORES; i++)
@@ -1315,6 +1317,7 @@ void KProcess::InitializeInterfaces() {
                 static_cast<Core::DynarmicExclusiveMonitor&>(*m_exclusive_monitor), i);
         }
     }
+#endif
 }
 
 bool KProcess::InsertWatchpoint(KProcessAddress addr, u64 size, DebugWatchpointType type) {

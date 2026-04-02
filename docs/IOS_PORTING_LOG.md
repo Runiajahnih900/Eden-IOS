@@ -870,3 +870,10 @@ File:
 
 - Added explicit include for `core/arm/exclusive_monitor.h`.
 - Restores visibility of `Core::MakeExclusiveMonitor(...)` after dynarmic include guards were introduced for iOS bootstrap profile.
+
+### 57) Exclude dynarmic backend construction from iOS compile path
+File:
+- `src/core/hle/kernel/k_process.cpp`
+
+- Wrapped dynarmic/NCE CPU interface construction block in non-iOS preprocessor guard.
+- Prevents iOS compilation from resolving symbols like `Core::ArmDynarmic64` and `Core::ArmDynarmic32` when dynarmic headers are intentionally excluded.
