@@ -1028,3 +1028,12 @@ File:
 - Added artifact upload step `eden-ios-ipa` on successful workflow runs.
 - Kept diagnostics artifact upload and extended it to include generated IPA when present.
 
+### 73) Fix app link stage by exporting bootstrap static-library dependencies
+File:
+- `src/ios/CMakeLists.txt`
+
+- Changed `yuzu-ios-bootstrap` link visibility from `PRIVATE` to `PUBLIC` for
+  `common`, `core`, and `frontend_common`.
+- Ensures `eden-ios-app` receives transitive libraries required to resolve symbols
+  when linking against the bootstrap static library.
+
