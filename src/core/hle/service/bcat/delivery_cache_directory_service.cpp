@@ -4,8 +4,10 @@
 // SPDX-FileCopyrightText: Copyright 2024 yuzu Emulator Project
 // SPDX-License-Identifier: GPL-3.0-or-later
 
+#if !defined(YUZU_PLATFORM_IOS)
 #include <openssl/err.h>
 #include <openssl/evp.h>
+#endif
 #include "common/string_util.h"
 #include "core/file_sys/vfs/vfs_types.h"
 #include "core/hle/service/bcat/bcat_result.h"
@@ -21,8 +23,22 @@ static BcatDigest DigestFile(const FileSys::VirtualFile& file) {
     BcatDigest out{};
     const auto bytes = file->ReadAllBytes();
 
+#if defined(YUZU_PLATFORM_IOS)
+    // iOS bootstrap compile profile runs without OpenSSL; keep deterministic digest behavior.
+    u32 rolling = 2166136261u;
+    for (const auto byte : bytes) {
+        rolling ^= byte;
+        rolling *= 16777619u;
+    }
+    for (size_t i = 0; i < out.size(); i += sizeof(rolling)) {
+        const auto count = (std::min)(sizeof(rolling), out.size() - i);
+        std::memcpy(out.data() + i, &rolling, count);
+        rolling = (rolling * 16777619u) ^ static_cast<u32>(i);
+    }
+#else
     u32 hash_len = 0;
     EVP_Digest(bytes.data(), bytes.size(), out.data(), &hash_len, EVP_md5(), nullptr);
+#endif
 
     return out;
 }

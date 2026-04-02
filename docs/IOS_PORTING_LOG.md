@@ -877,3 +877,11 @@ File:
 
 - Wrapped dynarmic/NCE CPU interface construction block in non-iOS preprocessor guard.
 - Prevents iOS compilation from resolving symbols like `Core::ArmDynarmic64` and `Core::ArmDynarmic32` when dynarmic headers are intentionally excluded.
+
+### 58) Remove OpenSSL dependency from BCAT delivery digest on iOS bootstrap
+File:
+- `src/core/hle/service/bcat/delivery_cache_directory_service.cpp`
+
+- Wrapped OpenSSL includes with non-iOS guard.
+- Added iOS fallback digest implementation in `DigestFile(...)` using deterministic rolling hash expansion into `BcatDigest`.
+- Keeps OpenSSL MD5 digest path for non-iOS targets.
