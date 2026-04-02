@@ -553,3 +553,11 @@ File: `externals/CMakeLists.txt`
 
 - Added iOS-specific guard before `AddJsonPackage(httplib)` to force the same options OFF at package injection point.
 - Prevents CMake configure failure in CI where httplib attempted `find_package(OpenSSL)` on iOS simulator builds.
+
+### 25) Force package-level override for httplib options
+File: `externals/CMakeLists.txt`
+
+- Updated `AddJsonPackage(httplib)` call for iOS to pass explicit `OPTIONS` overrides:
+  - `HTTPLIB_REQUIRE_OPENSSL OFF`
+  - `HTTPLIB_USE_OPENSSL_IF_AVAILABLE OFF`
+- This ensures runtime overrides are appended after `cpmfile.json` defaults, so iOS can override the `HTTPLIB_REQUIRE_OPENSSL ON` entry shipped in package metadata.

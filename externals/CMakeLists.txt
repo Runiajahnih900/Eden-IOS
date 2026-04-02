@@ -231,8 +231,13 @@ endif()
 if (PLATFORM_IOS)
     set(HTTPLIB_USE_OPENSSL_IF_AVAILABLE OFF CACHE BOOL "Allow cpp-httplib to use OpenSSL when available" FORCE)
     set(HTTPLIB_REQUIRE_OPENSSL OFF CACHE BOOL "Require OpenSSL for cpp-httplib" FORCE)
+    AddJsonPackage(httplib
+        OPTIONS
+            "HTTPLIB_REQUIRE_OPENSSL OFF"
+            "HTTPLIB_USE_OPENSSL_IF_AVAILABLE OFF")
+else()
+    AddJsonPackage(httplib)
 endif()
-AddJsonPackage(httplib)
 
 # cpp-jwt
 if (ENABLE_WEB_SERVICE OR ENABLE_UPDATE_CHECKER)
