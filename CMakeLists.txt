@@ -251,7 +251,9 @@ if (PLATFORM_IOS)
     set(HTTPLIB_USE_OPENSSL_IF_AVAILABLE OFF CACHE BOOL "Allow cpp-httplib to use OpenSSL when available" FORCE)
     set(HTTPLIB_REQUIRE_OPENSSL OFF CACHE BOOL "Require OpenSSL for cpp-httplib" FORCE)
 
-    add_compile_definitions(YUZU_PLATFORM_IOS=1)
+    # Needed for Apple cross builds where libc++ availability annotations hide
+    # C++20 symbols (e.g. std::stop_token) at lower deployment targets.
+    add_compile_definitions(YUZU_PLATFORM_IOS=1 _LIBCPP_DISABLE_AVAILABILITY=1)
 endif()
 
 option(YUZU_DISABLE_LLVM "Disable LLVM (useful for CI)" OFF)

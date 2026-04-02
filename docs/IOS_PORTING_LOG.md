@@ -728,3 +728,9 @@ File: `src/common/host_memory.cpp`
 
 - Wrapped `#include <sys/random.h>` in Apple branch with `__has_include(<sys/random.h>)`.
 - Fixes iOS simulator build failure where the SDK lacks that header.
+
+### 42) Unblock C++20 `std::stop_token` on iOS bootstrap toolchain
+File: `CMakeLists.txt`
+
+- In iOS profile, added `_LIBCPP_DISABLE_AVAILABILITY=1` compile definition.
+- Prevents libc++ availability gating from hiding C++20 threading symbols (such as `std::stop_token`) during simulator cross-builds.
