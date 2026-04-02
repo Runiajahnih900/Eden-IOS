@@ -12,12 +12,14 @@ extern "C" {
 typedef struct EdenIOSRuntimeStartOptions {
     int request_jit;
     int enable_validation_layers;
+    int start_execution_thread;
     const char* game_path;
 } EdenIOSRuntimeStartOptions;
 
 typedef struct EdenIOSRuntimeState {
     int running;
     int last_start_succeeded;
+    int run_thread_active;
     unsigned long long session_id;
     unsigned long long tick_count;
 } EdenIOSRuntimeState;

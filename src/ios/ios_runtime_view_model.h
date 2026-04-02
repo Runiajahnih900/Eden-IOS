@@ -28,6 +28,9 @@ NS_ASSUME_NONNULL_BEGIN
 - (EdenIOSRuntimeBridgeResult*)tick;
 - (EdenIOSRuntimeBridgeResult*)refreshState;
 
+- (void)setStartExecutionThreadEnabled:(BOOL)enabled;
+- (BOOL)isStartExecutionThreadEnabled;
+
 @end
 
 NS_ASSUME_NONNULL_END

@@ -45,6 +45,7 @@ void DispatchRuntimeEvent(const EdenIOSRuntimeEventType event_type,
     EdenIOSRuntimeState state{};
     state.running = status.running ? 1 : 0;
     state.last_start_succeeded = status.last_start_succeeded ? 1 : 0;
+    state.run_thread_active = status.run_thread_active ? 1 : 0;
     state.session_id = static_cast<unsigned long long>(status.session_id);
     state.tick_count = static_cast<unsigned long long>(status.tick_count);
 
@@ -71,6 +72,7 @@ int EdenIOSRuntimeStart(const EdenIOSRuntimeStartOptions* options,
     if (options) {
         request.request_jit = options->request_jit != 0;
         request.enable_validation_layers = options->enable_validation_layers != 0;
+        request.start_execution_thread = options->start_execution_thread != 0;
         if (options->game_path) {
             request.game_path = options->game_path;
         }
@@ -81,6 +83,7 @@ int EdenIOSRuntimeStart(const EdenIOSRuntimeStartOptions* options,
 
     out_state->running = status.running ? 1 : 0;
     out_state->last_start_succeeded = status.last_start_succeeded ? 1 : 0;
+    out_state->run_thread_active = status.run_thread_active ? 1 : 0;
     out_state->session_id = static_cast<unsigned long long>(status.session_id);
     out_state->tick_count = static_cast<unsigned long long>(status.tick_count);
     WriteReportToBuffer(status.last_report, report_buffer, report_buffer_size);
@@ -105,6 +108,7 @@ int EdenIOSRuntimeTick(EdenIOSRuntimeState* out_state,
     const IOSFrontend::RuntimeSessionStatus status = IOSFrontend::TickRuntimeSession();
     out_state->running = status.running ? 1 : 0;
     out_state->last_start_succeeded = status.last_start_succeeded ? 1 : 0;
+    out_state->run_thread_active = status.run_thread_active ? 1 : 0;
     out_state->session_id = static_cast<unsigned long long>(status.session_id);
     out_state->tick_count = static_cast<unsigned long long>(status.tick_count);
     WriteReportToBuffer(status.last_report, report_buffer, report_buffer_size);
@@ -122,6 +126,7 @@ int EdenIOSRuntimeGetState(EdenIOSRuntimeState* out_state,
     const IOSFrontend::RuntimeSessionStatus status = IOSFrontend::QueryRuntimeSessionStatus();
     out_state->running = status.running ? 1 : 0;
     out_state->last_start_succeeded = status.last_start_succeeded ? 1 : 0;
+    out_state->run_thread_active = status.run_thread_active ? 1 : 0;
     out_state->session_id = static_cast<unsigned long long>(status.session_id);
     out_state->tick_count = static_cast<unsigned long long>(status.tick_count);
     WriteReportToBuffer(status.last_report, report_buffer, report_buffer_size);

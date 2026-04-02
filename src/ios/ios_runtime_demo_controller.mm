@@ -10,6 +10,7 @@
 @property(nonatomic, strong) EdenIOSRuntimeViewModel* viewModel;
 @property(nonatomic, strong) UILabel* statusLabel;
 @property(nonatomic, strong) UITextField* gamePathField;
+@property(nonatomic, strong) UISwitch* runThreadSwitch;
 
 @end
 
@@ -45,6 +46,23 @@
     self.gamePathField.autocapitalizationType = UITextAutocapitalizationTypeNone;
     self.gamePathField.autocorrectionType = UITextAutocorrectionTypeNo;
 
+    UILabel* runThreadLabel = [[UILabel alloc] init];
+    runThreadLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    runThreadLabel.text = @"Start execution thread";
+
+    self.runThreadSwitch = [[UISwitch alloc] init];
+    self.runThreadSwitch.translatesAutoresizingMaskIntoConstraints = NO;
+    self.runThreadSwitch.on = [self.viewModel isStartExecutionThreadEnabled];
+    [self.runThreadSwitch addTarget:self
+                              action:@selector(onRunThreadSwitchChanged)
+                    forControlEvents:UIControlEventValueChanged];
+
+    UIStackView* runThreadRow = [[UIStackView alloc] initWithArrangedSubviews:@[runThreadLabel, self.runThreadSwitch]];
+    runThreadRow.translatesAutoresizingMaskIntoConstraints = NO;
+    runThreadRow.axis = UILayoutConstraintAxisHorizontal;
+    runThreadRow.spacing = 12.0;
+    runThreadRow.distribution = UIStackViewDistributionFill;
+
     UIButton* startButton = [UIButton buttonWithType:UIButtonTypeSystem];
     startButton.translatesAutoresizingMaskIntoConstraints = NO;
     [startButton setTitle:@"Start" forState:UIControlStateNormal];
@@ -77,7 +95,7 @@
     buttonRow.spacing = 12.0;
     buttonRow.distribution = UIStackViewDistributionFillEqually;
 
-    UIStackView* stack = [[UIStackView alloc] initWithArrangedSubviews:@[self.gamePathField, buttonRow, self.statusLabel]];
+    UIStackView* stack = [[UIStackView alloc] initWithArrangedSubviews:@[self.gamePathField, runThreadRow, buttonRow, self.statusLabel]];
     stack.translatesAutoresizingMaskIntoConstraints = NO;
     stack.axis = UILayoutConstraintAxisVertical;
     stack.spacing = 16.0;
@@ -95,6 +113,10 @@
 - (void)onStartTapped {
     NSString* gamePath = self.gamePathField.text;
     [self.viewModel startWithGamePath:gamePath.length > 0 ? gamePath : nil];
+}
+
+- (void)onRunThreadSwitchChanged {
+    [self.viewModel setStartExecutionThreadEnabled:self.runThreadSwitch.isOn];
 }
 
 - (void)onStopTapped {

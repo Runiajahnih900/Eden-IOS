@@ -11,12 +11,14 @@ namespace IOSFrontend {
 struct RuntimeStartRequest {
     bool request_jit = false;
     bool enable_validation_layers = false;
+    bool start_execution_thread = true;
     std::string game_path;
 };
 
 struct RuntimeSessionStatus {
     bool running = false;
     bool last_start_succeeded = false;
+    bool run_thread_active = false;
     std::uint64_t session_id = 0;
     std::uint64_t tick_count = 0;
     std::string current_game_path;

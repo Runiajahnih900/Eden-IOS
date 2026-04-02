@@ -5,6 +5,7 @@
 
 #include <mutex>
 #include <string>
+#include <thread>
 
 #include "common/settings.h"
 #include "ios_bootstrap.h"
@@ -29,6 +30,8 @@ std::string g_current_game_path;
 std::string g_last_report = "runtime-idle";
 std::unique_ptr<Core::System> g_system;
 std::unique_ptr<EmuWindowIOSHeadless> g_emu_window;
+std::thread g_run_thread;
+bool g_run_thread_active = false;
 
 struct LoaderPreflightResult {
     bool file_opened = false;
@@ -65,16 +68,26 @@ LoaderPreflightResult RunLoaderPreflight(const std::string& game_path) {
 
 void TearDownSystemLocked() {
     if (!g_system) {
+        if (g_run_thread.joinable()) {
+            g_run_thread.join();
+        }
+        g_run_thread_active = false;
         return;
     }
 
     g_system->SetExitRequested(true);
     g_system->ShutdownMainProcess();
+
+    if (g_run_thread.joinable()) {
+        g_run_thread.join();
+    }
+    g_run_thread_active = false;
+
     g_emu_window.reset();
     g_system.reset();
 }
 
-bool StartCoreLoadPath(const std::string& game_path, std::string* out_report) {
+bool StartCoreLoadPath(const RuntimeStartRequest& request, std::string* out_report) {
     TearDownSystemLocked();
 
     g_system = std::make_unique<Core::System>();
@@ -93,7 +106,7 @@ bool StartCoreLoadPath(const std::string& game_path, std::string* out_report) {
     Service::AM::FrontendAppletParameters load_parameters{
         .applet_id = Service::AM::AppletId::Application,
     };
-    const auto load_result = g_system->Load(*g_emu_window, game_path, load_parameters);
+    const auto load_result = g_system->Load(*g_emu_window, request.game_path, load_parameters);
     if (load_result != Core::SystemResultStatus::Success) {
         if (out_report) {
             *out_report += ";core_load_result=" + std::to_string(static_cast<u32>(load_result));
@@ -105,8 +118,22 @@ bool StartCoreLoadPath(const std::string& game_path, std::string* out_report) {
     g_system->GPU().Start();
     g_system->GetCpuManager().OnGpuReady();
 
+    if (request.start_execution_thread) {
+        Core::System* const system = g_system.get();
+        g_run_thread = std::thread([system] {
+            if (system) {
+                void(system->Run());
+            }
+        });
+        g_run_thread_active = true;
+    } else {
+        g_run_thread_active = false;
+    }
+
     if (out_report) {
         *out_report += ";core_load_result=success";
+        *out_report += request.start_execution_thread ? ";core_run_thread=started"
+                                                      : ";core_run_thread=disabled";
     }
     return true;
 }
@@ -115,6 +142,7 @@ RuntimeSessionStatus BuildSnapshot() {
     RuntimeSessionStatus status{};
     status.running = g_running;
     status.last_start_succeeded = g_last_start_succeeded;
+    status.run_thread_active = g_run_thread_active;
     status.session_id = g_session_id;
     status.tick_count = g_tick_count;
     status.current_game_path = g_current_game_path;
@@ -151,6 +179,7 @@ bool StartRuntimeSession(const RuntimeStartRequest& request, RuntimeSessionStatu
         if (!bootstrap_status.ready || !bootstrap_status.game_path_valid ||
             !loader_preflight.file_opened || !loader_preflight.type_known ||
             !loader_preflight.bootable) {
+            TearDownSystemLocked();
             g_running = false;
             g_last_start_succeeded = false;
             g_session_id = 0;
@@ -158,7 +187,7 @@ bool StartRuntimeSession(const RuntimeStartRequest& request, RuntimeSessionStatu
             g_current_game_path.clear();
             g_last_report = bootstrap_report + ";runtime=start-rejected-loader-preflight";
         } else {
-            if (StartCoreLoadPath(request.game_path, &bootstrap_report)) {
+            if (StartCoreLoadPath(request, &bootstrap_report)) {
                 g_running = true;
                 g_last_start_succeeded = true;
                 g_session_id = g_next_session_id++;
@@ -168,6 +197,7 @@ bool StartRuntimeSession(const RuntimeStartRequest& request, RuntimeSessionStatu
             } else {
                 g_running = false;
                 g_last_start_succeeded = false;
+                g_run_thread_active = false;
                 g_session_id = 0;
                 g_tick_count = 0;
                 g_current_game_path.clear();

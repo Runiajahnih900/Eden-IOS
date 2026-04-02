@@ -7,6 +7,7 @@
 
 @property(nonatomic, assign) BOOL requestJIT;
 @property(nonatomic, assign) BOOL enableValidationLayers;
+@property(nonatomic, assign) BOOL startExecutionThread;
 @property(nonatomic, copy, readwrite) NSString* statusText;
 @property(nonatomic, strong, readwrite) EdenIOSRuntimeBridgeResult* latestResult;
 
@@ -17,9 +18,11 @@
 + (NSString*)makeStatusText:(EdenIOSRuntimeBridgeResult*)result {
     NSString* running = result.running ? @"running" : @"idle";
     NSString* started = result.lastStartSucceeded ? @"start-ok" : @"start-failed";
-    return [NSString stringWithFormat:@"%@ | %@ | session=%lu | tick=%lu | %@",
+    NSString* thread = result.runThreadActive ? @"thread=active" : @"thread=inactive";
+    return [NSString stringWithFormat:@"%@ | %@ | %@ | session=%lu | tick=%lu | %@",
                                       running,
                                       started,
+                                      thread,
                                       (unsigned long)result.sessionID,
                                       (unsigned long)result.tickCount,
                                       result.report ?: @""];
@@ -31,6 +34,7 @@
     if (self) {
         _requestJIT = requestJIT;
         _enableValidationLayers = enableValidationLayers;
+        _startExecutionThread = YES;
 
         [EdenIOSRuntimeBridge setEventNotificationsEnabled:YES];
         [[NSNotificationCenter defaultCenter] addObserver:self
@@ -60,6 +64,7 @@
     NSDictionary* userInfo = note.userInfo;
     BOOL running = [userInfo[EdenIOSRuntimeEventRunningKey] boolValue];
     BOOL lastStartSucceeded = [userInfo[EdenIOSRuntimeEventLastStartSucceededKey] boolValue];
+        BOOL runThreadActive = [userInfo[EdenIOSRuntimeEventRunThreadActiveKey] boolValue];
     NSUInteger sessionID = [userInfo[EdenIOSRuntimeEventSessionIDKey] unsignedIntegerValue];
     NSUInteger tickCount = [userInfo[EdenIOSRuntimeEventTickCountKey] unsignedIntegerValue];
     NSString* report = userInfo[EdenIOSRuntimeEventReportKey] ?: @"";
@@ -67,6 +72,7 @@
     EdenIOSRuntimeBridgeResult* result =
         [[EdenIOSRuntimeBridgeResult alloc] initWithRunning:running
                                          lastStartSucceeded:lastStartSucceeded
+                                                                                         runThreadActive:runThreadActive
                                                   sessionID:sessionID
                                                   tickCount:tickCount
                                                     report:report];
@@ -77,6 +83,7 @@
     EdenIOSRuntimeBridgeResult* result =
         [EdenIOSRuntimeBridge startWithRequestJIT:self.requestJIT
                            enableValidationLayers:self.enableValidationLayers
+                            startExecutionThread:self.startExecutionThread
                                          gamePath:gamePath];
     [self applyResultAndNotify:result];
     return result;
@@ -98,6 +105,14 @@
     EdenIOSRuntimeBridgeResult* result = [EdenIOSRuntimeBridge state];
     [self applyResultAndNotify:result];
     return result;
+}
+
+- (void)setStartExecutionThreadEnabled:(BOOL)enabled {
+    self.startExecutionThread = enabled;
+}
+
+- (BOOL)isStartExecutionThreadEnabled {
+    return self.startExecutionThread;
 }
 
 @end

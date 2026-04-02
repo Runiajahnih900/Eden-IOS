@@ -9,6 +9,7 @@ NSNotificationName const EdenIOSRuntimeEventNotification = @"EdenIOSRuntimeEvent
 NSString* const EdenIOSRuntimeEventTypeKey = @"type";
 NSString* const EdenIOSRuntimeEventRunningKey = @"running";
 NSString* const EdenIOSRuntimeEventLastStartSucceededKey = @"lastStartSucceeded";
+NSString* const EdenIOSRuntimeEventRunThreadActiveKey = @"runThreadActive";
 NSString* const EdenIOSRuntimeEventSessionIDKey = @"sessionID";
 NSString* const EdenIOSRuntimeEventTickCountKey = @"tickCount";
 NSString* const EdenIOSRuntimeEventReportKey = @"report";
@@ -45,6 +46,7 @@ void RuntimeEventNotificationCallback(const EdenIOSRuntimeEventType event_type,
             EdenIOSRuntimeEventTypeKey: RuntimeEventTypeToString(event_type),
             EdenIOSRuntimeEventRunningKey: @((state && state->running != 0)),
             EdenIOSRuntimeEventLastStartSucceededKey: @((state && state->last_start_succeeded != 0)),
+            EdenIOSRuntimeEventRunThreadActiveKey: @((state && state->run_thread_active != 0)),
             EdenIOSRuntimeEventSessionIDKey: @((state ? state->session_id : 0)),
             EdenIOSRuntimeEventTickCountKey: @((state ? state->tick_count : 0)),
             EdenIOSRuntimeEventReportKey: report_string,
@@ -61,6 +63,7 @@ void RuntimeEventNotificationCallback(const EdenIOSRuntimeEventType event_type,
 
 - (instancetype)initWithRunning:(BOOL)running
              lastStartSucceeded:(BOOL)lastStartSucceeded
+        runThreadActive:(BOOL)runThreadActive
                       sessionID:(NSUInteger)sessionID
                       tickCount:(NSUInteger)tickCount
                         report:(NSString*)report {
@@ -68,6 +71,7 @@ void RuntimeEventNotificationCallback(const EdenIOSRuntimeEventType event_type,
     if (self) {
         _running = running;
         _lastStartSucceeded = lastStartSucceeded;
+    _runThreadActive = runThreadActive;
         _sessionID = sessionID;
         _tickCount = tickCount;
         _report = [report copy];
@@ -81,10 +85,12 @@ void RuntimeEventNotificationCallback(const EdenIOSRuntimeEventType event_type,
 
 + (EdenIOSRuntimeBridgeResult*)startWithRequestJIT:(BOOL)requestJIT
                              enableValidationLayers:(BOOL)enableValidationLayers
+                               startExecutionThread:(BOOL)startExecutionThread
                                            gamePath:(nullable NSString*)gamePath {
     EdenIOSRuntimeStartOptions options = {
         .request_jit = requestJIT ? 1 : 0,
         .enable_validation_layers = enableValidationLayers ? 1 : 0,
+        .start_execution_thread = startExecutionThread ? 1 : 0,
         .game_path = gamePath != nil ? [gamePath UTF8String] : NULL,
     };
 
@@ -96,6 +102,7 @@ void RuntimeEventNotificationCallback(const EdenIOSRuntimeEventType event_type,
 
     return [[EdenIOSRuntimeBridgeResult alloc] initWithRunning:(state.running != 0)
                                              lastStartSucceeded:(state.last_start_succeeded != 0)
+                               runThreadActive:(state.run_thread_active != 0)
                                                      sessionID:(NSUInteger)state.session_id
                                                      tickCount:(NSUInteger)state.tick_count
                                                         report:report];
@@ -114,6 +121,7 @@ void RuntimeEventNotificationCallback(const EdenIOSRuntimeEventType event_type,
 
     return [[EdenIOSRuntimeBridgeResult alloc] initWithRunning:(state.running != 0)
                                              lastStartSucceeded:(state.last_start_succeeded != 0)
+                               runThreadActive:(state.run_thread_active != 0)
                                                      sessionID:(NSUInteger)state.session_id
                                                      tickCount:(NSUInteger)state.tick_count
                                                         report:report];
@@ -128,6 +136,7 @@ void RuntimeEventNotificationCallback(const EdenIOSRuntimeEventType event_type,
 
     return [[EdenIOSRuntimeBridgeResult alloc] initWithRunning:(state.running != 0)
                                              lastStartSucceeded:(state.last_start_succeeded != 0)
+                               runThreadActive:(state.run_thread_active != 0)
                                                      sessionID:(NSUInteger)state.session_id
                                                      tickCount:(NSUInteger)state.tick_count
                                                         report:report];

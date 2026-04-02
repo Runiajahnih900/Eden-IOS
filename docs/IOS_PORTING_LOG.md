@@ -335,6 +335,66 @@ File: `src/ios/ios_runtime_session.cpp`
   - `core_load_result=success`
   - numeric failure code when load fails
 
+### 17) Background run thread integration
+File: `src/ios/ios_runtime_session.h`
+
+- Extended runtime start request with execution control:
+  - `start_execution_thread` (default ON)
+- Extended runtime status with run loop indicator:
+  - `run_thread_active`
+
+File: `src/ios/ios_runtime_session.cpp`
+
+- Added managed background run thread for `Core::System::Run`.
+- Runtime start now supports two modes:
+  - load-only (thread disabled)
+  - load + run thread (thread enabled)
+- Added proper run thread join during teardown and stop to avoid dangling worker threads.
+- Added report tags:
+  - `core_run_thread=started`
+  - `core_run_thread=disabled`
+
+File: `src/ios/ios_runtime_c_api.h`
+
+- Added C ABI field in start options:
+  - `start_execution_thread`
+- Added C ABI runtime state field:
+  - `run_thread_active`
+
+File: `src/ios/ios_runtime_c_api.cpp`
+
+- Added mapping for `start_execution_thread` from C API into runtime session.
+- Added mapping for `run_thread_active` in state and event dispatch payload.
+
+File: `src/ios/ios_runtime_objc_bridge.h`
+
+- Extended ObjC runtime result with:
+  - `runThreadActive`
+- Extended start API with:
+  - `startExecutionThread`
+- Added runtime event payload key:
+  - `EdenIOSRuntimeEventRunThreadActiveKey`
+
+File: `src/ios/ios_runtime_objc_bridge.mm`
+
+- Added marshaling for `runThreadActive` in start/tick/state responses.
+- Added `runThreadActive` in notification payload.
+
+File: `src/ios/ios_runtime_view_model.mm`
+
+- View-model now includes run-thread state in status text.
+- View-model start command now requests background execution thread by default.
+- Added explicit view-model controls:
+  - `setStartExecutionThreadEnabled:`
+  - `isStartExecutionThreadEnabled`
+
+File: `src/ios/ios_runtime_demo_controller.mm`
+
+- Added UI switch to toggle runtime start mode:
+  - load+run-thread mode
+  - load-only mode
+- Wired switch state into view-model `startExecutionThread` option.
+
 ## Current Result
 
 - iOS bootstrap build profile exists.
@@ -351,6 +411,7 @@ File: `src/ios/ios_runtime_session.cpp`
 - A dedicated GitHub Actions workflow is now available for iOS bootstrap build smoke tests.
 - Runtime start validation now includes real core-loader checks, not only path-level checks.
 - Runtime start now also attempts headless `Core::System::Load` before marking session as running.
+- Runtime now can continue into a managed background `Core::System::Run` thread.
 
 ## Known Limitations (Expected at This Stage)
 
@@ -360,3 +421,4 @@ File: `src/ios/ios_runtime_session.cpp`
 - MoltenVK must be provided by the iOS build environment/toolchain.
 - CI workflow validates bootstrap compilation path, not gameplay/runtime correctness yet.
 - `Core::System::Load` is now attempted headless; long-running run loop integration is still pending.
+- Managed run thread exists, but full lifecycle/perf tuning and gameplay validation are still pending.

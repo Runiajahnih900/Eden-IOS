@@ -13,6 +13,7 @@ FOUNDATION_EXPORT NSNotificationName const EdenIOSRuntimeEventNotification;
 FOUNDATION_EXPORT NSString* const EdenIOSRuntimeEventTypeKey;
 FOUNDATION_EXPORT NSString* const EdenIOSRuntimeEventRunningKey;
 FOUNDATION_EXPORT NSString* const EdenIOSRuntimeEventLastStartSucceededKey;
+FOUNDATION_EXPORT NSString* const EdenIOSRuntimeEventRunThreadActiveKey;
 FOUNDATION_EXPORT NSString* const EdenIOSRuntimeEventSessionIDKey;
 FOUNDATION_EXPORT NSString* const EdenIOSRuntimeEventTickCountKey;
 FOUNDATION_EXPORT NSString* const EdenIOSRuntimeEventReportKey;
@@ -21,12 +22,14 @@ FOUNDATION_EXPORT NSString* const EdenIOSRuntimeEventReportKey;
 
 @property(nonatomic, assign, readonly) BOOL running;
 @property(nonatomic, assign, readonly) BOOL lastStartSucceeded;
+@property(nonatomic, assign, readonly) BOOL runThreadActive;
 @property(nonatomic, assign, readonly) NSUInteger sessionID;
 @property(nonatomic, assign, readonly) NSUInteger tickCount;
 @property(nonatomic, copy, readonly) NSString* report;
 
 - (instancetype)initWithRunning:(BOOL)running
              lastStartSucceeded:(BOOL)lastStartSucceeded
+                runThreadActive:(BOOL)runThreadActive
                       sessionID:(NSUInteger)sessionID
                       tickCount:(NSUInteger)tickCount
                         report:(NSString*)report NS_DESIGNATED_INITIALIZER;
@@ -39,6 +42,7 @@ FOUNDATION_EXPORT NSString* const EdenIOSRuntimeEventReportKey;
 
 + (EdenIOSRuntimeBridgeResult*)startWithRequestJIT:(BOOL)requestJIT
                              enableValidationLayers:(BOOL)enableValidationLayers
+                               startExecutionThread:(BOOL)startExecutionThread
                                            gamePath:(nullable NSString*)gamePath;
 
 + (void)stop;
