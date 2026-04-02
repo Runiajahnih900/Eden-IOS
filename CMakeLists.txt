@@ -381,7 +381,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
 set(THREADS_PREFER_PTHREAD_FLAG ON)
 find_package(Threads REQUIRED)
 
-find_package(RenderDoc MODULE)
+find_package(RenderDoc MODULE QUIET)
 
 # openssl funniness
 if (NOT PLATFORM_IOS)

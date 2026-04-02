@@ -594,3 +594,17 @@ File: `.github/workflows/ios-bootstrap.yml`
   - `Configuring incomplete, errors occurred`
 - Added `Root cause snippet` block in step summary using contextual lines around the first hard error markers.
 - Added `build-ios/configure.log` to uploaded diagnostics artifact.
+
+### 29) Fix iOS configure root cause from summary output
+File: `externals/CMakeLists.txt`
+
+- Fixed iOS-specific `httplib` package invocation to use keyword form when passing options:
+  - from `AddJsonPackage(httplib OPTIONS ...)`
+  - to `AddJsonPackage(NAME httplib OPTIONS ...)`
+- This resolves fatal configure error from `CPMUtil`: `json package: No name specified`.
+
+File: `CMakeLists.txt`
+
+- Changed optional RenderDoc lookup to quiet mode:
+  - `find_package(RenderDoc MODULE QUIET)`
+- Prevents optional RenderDoc probe from polluting failure summary with non-blocking `Could NOT find` noise.
