@@ -734,3 +734,9 @@ File: `CMakeLists.txt`
 
 - In iOS profile, added `_LIBCPP_DISABLE_AVAILABILITY=1` compile definition.
 - Prevents libc++ availability gating from hiding C++20 threading symbols (such as `std::stop_token`) during simulator cross-builds.
+
+### 43) Include `<stop_token>` in thread polyfill header
+File: `src/common/polyfill_thread.h`
+
+- Added missing standard include for `std::stop_token`.
+- Fixes compile failure where some libc++ configurations do not expose `stop_token` via `<thread>` alone.
