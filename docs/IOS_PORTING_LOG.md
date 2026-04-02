@@ -782,3 +782,9 @@ Files:
 
 - Replaced direct `condition_variable_any.wait(lock, stop_token, predicate)` calls with `Common::WaitWithStopToken(...)`.
 - Prevents further libc++ API-availability/overload mismatches across runtime worker loops in iOS bootstrap builds.
+
+### 48) Fix Vulkan `Offset3D` aggregate initialization in texture copy path
+File: `src/video_core/renderer_vulkan/vk_texture_cache.cpp`
+
+- Replaced `VideoCommon::Offset3D(0, 0, 0)` with brace initialization `VideoCommon::Offset3D{0, 0, 0}`.
+- Resolves compiler error on iOS toolchain that rejects parenthesized initialization for this aggregate type.
