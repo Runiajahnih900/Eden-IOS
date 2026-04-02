@@ -10,6 +10,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -112,7 +113,21 @@ bool StoppableTimedWait(std::stop_token token, const std::chrono::duration<Rep, 
 
     // Perform the timed wait.
     std::unique_lock lk{m};
-    return !cv.wait_for(lk, token, rel_time, [&] { return token.stop_requested(); });
+    if constexpr (requires { cv.wait_for(lk, token, rel_time, [&] { return token.stop_requested(); }); }) {
+        return !cv.wait_for(lk, token, rel_time, [&] { return token.stop_requested(); });
+    } else {
+        const auto deadline = std::chrono::steady_clock::now() + rel_time;
+        while (!token.stop_requested()) {
+            const auto now = std::chrono::steady_clock::now();
+            if (now >= deadline) {
+                return true;
+            }
+            const auto remaining = deadline - now;
+            const auto sleep_slice = (std::min)(remaining, std::chrono::milliseconds{10});
+            cv.wait_for(lk, sleep_slice);
+        }
+        return false;
+    }
 }
 
 } // namespace Common

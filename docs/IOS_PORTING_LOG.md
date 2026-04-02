@@ -934,3 +934,12 @@ File:
 - Added concrete iOS stub definition for `Core::DebuggerImpl` in the iOS debugger translation unit.
 - Ensures `std::unique_ptr<DebuggerImpl>` in `Debugger` has a complete pointee type at destructor instantiation time.
 - Resolves iOS CI failure from libc++ `unique_ptr` static assertion on incomplete type.
+
+### 64) Add libc++ fallback for stop-token timed wait helper
+File:
+- `src/common/polyfill_thread.h`
+
+- Added a compile-time fallback in `StoppableTimedWait(...)` for toolchains lacking
+  `condition_variable_any::wait_for(lock, stop_token, duration, predicate)`.
+- Fallback uses short-slice `wait_for(lock, duration)` polling until timeout or stop request.
+- Keeps existing native stop-token timed-wait path when available.
