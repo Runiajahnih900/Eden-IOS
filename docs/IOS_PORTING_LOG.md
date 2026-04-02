@@ -722,3 +722,9 @@ File: `.github/workflows/ios-bootstrap.yml`
   - `::error title=Configure failure::...`
   - `::error title=Build failure::...`
 - Makes root-cause retrieval possible from public check-run annotations API, enabling autonomous fix loops without manual copy-paste of full logs.
+
+### 41) Guard Apple `sys/random.h` include for iOS simulator SDK
+File: `src/common/host_memory.cpp`
+
+- Wrapped `#include <sys/random.h>` in Apple branch with `__has_include(<sys/random.h>)`.
+- Fixes iOS simulator build failure where the SDK lacks that header.

@@ -27,7 +27,9 @@
 #include <sys/random.h>
 #elif defined(__APPLE__)
 #include <sys/types.h>
+#if __has_include(<sys/random.h>)
 #include <sys/random.h>
+#endif
 #include <mach/vm_map.h>
 #include <mach/mach.h>
 #elif defined(__FreeBSD__)
