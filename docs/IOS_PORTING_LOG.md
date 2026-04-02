@@ -1,0 +1,362 @@
+# iOS Porting Change Log
+
+Date: 2026-04-01
+Workspace: eden
+Target: iPadOS 16 (jailbreak + TrollStore), milestone boot-to-menu
+
+Last Update: 2026-04-02
+
+## Scope Implemented
+
+This log records all source changes made in the current implementation session for the iOS bootstrap track.
+
+## File-by-File Changes
+
+### 1) Root build profile for iOS bootstrap
+File: `CMakeLists.txt`
+
+- Added iOS-aware gating for components that are currently desktop/non-priority on the bootstrap path:
+  - Disable Qt frontend and Qt translation in iOS profile.
+  - Disable update checker, web service, room, and command-line target in iOS profile.
+- Added option:
+  - `ENABLE_IOS_BOOTSTRAP`
+- Added forced iOS profile behavior when `PLATFORM_IOS` is active:
+  - `ENABLE_IOS_BOOTSTRAP=ON`
+  - compile definition `YUZU_PLATFORM_IOS=1`
+- Tightened dependent options to avoid accidental non-iOS-friendly targets in iOS mode:
+  - `YUZU_ROOM` disabled for iOS.
+  - `YUZU_CMD` disabled for iOS.
+
+### 2) Platform detection
+File: `externals/cmake-modules/DetectPlatform.cmake`
+
+- Added explicit iOS platform flag:
+  - `PLATFORM_IOS` when `CMAKE_SYSTEM_NAME` is `iOS`.
+
+### 3) Source graph integration
+File: `src/CMakeLists.txt`
+
+- Added conditional iOS subtree inclusion:
+  - `add_subdirectory(ios)` when `PLATFORM_IOS` and `ENABLE_IOS_BOOTSTRAP` are ON.
+
+### 4) New iOS bootstrap module
+File: `src/ios/CMakeLists.txt`
+
+- Added static target:
+  - `yuzu-ios-bootstrap` (output name `eden-ios-bootstrap`)
+- Linked core bootstrap dependencies:
+  - `common`, `core`, `frontend_common`
+- Added Apple framework linkage:
+  - `Foundation`
+- Added iOS-specific MoltenVK linkage logic:
+  - Looks up `MoltenVK` from iOS toolchain.
+  - Defines `YUZU_IOS_MOLTENVK=1` when found.
+  - Emits warning when not found.
+
+### 5) New iOS bootstrap API (header)
+File: `src/ios/ios_bootstrap.h`
+
+- Added data structures for bootstrap state:
+  - `BootstrapConfig`
+  - `BootstrapStatus` with fields:
+    - `ready`
+    - `on_ios`
+    - `moltenvk_available`
+    - `game_path_valid`
+    - `game_path`
+    - `summary`
+- Added APIs:
+  - `PrepareBootstrap(const BootstrapConfig&)`
+  - `PrepareBootstrap(const BootstrapConfig&, const std::string& game_path)`
+  - `BuildBootstrapReport(const BootstrapStatus&)`
+
+### 6) New iOS bootstrap API (implementation)
+File: `src/ios/ios_bootstrap.cpp`
+
+- Added runtime platform readiness detection for iOS.
+- Added supported game extension checks for bootstrap pre-validation:
+  - `.nsp`, `.xci`, `.nca`, `.nro`, `.nso`, `.kip`, `.zip`, `.7z`
+- Added filesystem-based game path validation:
+  - accepts existing directory
+  - accepts existing regular file with supported extension
+- Added MoltenVK status propagation via `YUZU_IOS_MOLTENVK`.
+- Added summary composition for diagnostics:
+  - includes game path validity markers
+  - includes no-moltenvk marker on iOS when unavailable
+- Added `BuildBootstrapReport` formatter for wrapper/frontend logging.
+
+### 7) External dependency resolution behavior
+File: `externals/CMakeLists.txt`
+
+- Updated MoltenVK logic for Apple targets:
+  - On iOS (`PLATFORM_IOS`): no macOS bundled artifact fallback is used.
+  - iOS now expects MoltenVK from iOS toolchain lookup.
+  - emits warning if missing.
+- Kept existing bundled path behavior for non-iOS Apple targets (macOS path remains unchanged).
+
+### 8) C ABI bridge for Swift/ObjC wrappers
+File: `src/ios/CMakeLists.txt`
+
+- Added C bridge sources into the iOS bootstrap target:
+  - `ios_bootstrap_c_api.cpp`
+  - `ios_bootstrap_c_api.h`
+
+File: `src/ios/ios_bootstrap_c_api.h`
+
+- Added C-compatible API surface for wrapper integration:
+  - `EdenIOSBootstrapAbiVersion()`
+  - `EdenIOSPrepareBootstrap(...)`
+- Added plain C structs:
+  - `EdenIOSBootstrapOptions`
+  - `EdenIOSBootstrapResult`
+
+File: `src/ios/ios_bootstrap_c_api.cpp`
+
+- Added translation layer from C API inputs to C++ bootstrap config.
+- Added marshaling of C++ status back into C structs.
+- Added report-buffer writing logic with null-termination guarantees.
+- Added ABI version constant return (`1`) for wrapper-side compatibility checks.
+
+### 9) Objective-C++ bridge for iOS app wrappers
+File: `src/ios/CMakeLists.txt`
+
+- Added iOS-only bridge sources to bootstrap target when `PLATFORM_IOS` is ON:
+  - `ios_bootstrap_objc_bridge.h`
+  - `ios_bootstrap_objc_bridge.mm`
+
+File: `src/ios/ios_bootstrap_objc_bridge.h`
+
+- Added Objective-C interfaces intended for Swift/ObjC app-layer integration:
+  - `EdenIOSBootstrapBridge`
+  - `EdenIOSBootstrapBridgeResult`
+- Exposed wrapper-friendly methods:
+  - `+abiVersion`
+  - `+prepareWithRequestJIT:enableValidationLayers:gamePath:`
+
+File: `src/ios/ios_bootstrap_objc_bridge.mm`
+
+- Implemented Objective-C++ call-through into C ABI bootstrap functions.
+- Added conversion/marshaling from `NSString` to UTF-8 C input.
+- Added conversion of C bootstrap output into Objective-C result object.
+- Added stable report buffer handoff (`char report_buffer[4096]`) for wrapper-side diagnostics.
+
+### 10) Runtime session placeholder (start/stop/state)
+File: `src/ios/CMakeLists.txt`
+
+- Added runtime session and bridges into bootstrap target:
+  - `ios_runtime_session.cpp`, `ios_runtime_session.h`
+  - `ios_runtime_c_api.cpp`, `ios_runtime_c_api.h`
+  - `ios_runtime_objc_bridge.h`, `ios_runtime_objc_bridge.mm` (iOS-only sources)
+
+File: `src/ios/ios_runtime_session.h`
+
+- Added C++ runtime placeholder interfaces:
+  - `StartRuntimeSession(...)`
+  - `StopRuntimeSession()`
+  - `QueryRuntimeSessionStatus()`
+- Added request/status data models:
+  - `RuntimeStartRequest`
+  - `RuntimeSessionStatus`
+
+File: `src/ios/ios_runtime_session.cpp`
+
+- Added placeholder runtime state machine with thread-safe state access.
+- Added pre-start gate that reuses bootstrap preflight (`PrepareBootstrap`) before allowing runtime start.
+- Added monotonic runtime `session_id` assignment for each accepted start.
+- Added runtime `tick_count` counter and `TickRuntimeSession()` polling entrypoint.
+- Added status/report strings for:
+  - start accepted placeholder
+  - start rejected
+  - stop
+  - stop noop
+  - tick
+  - tick noop
+
+File: `src/ios/ios_runtime_c_api.h`
+
+- Added C ABI for runtime control:
+  - `EdenIOSRuntimeStart(...)`
+  - `EdenIOSRuntimeStop()`
+  - `EdenIOSRuntimeTick(...)`
+  - `EdenIOSRuntimeGetState(...)`
+- Added C ABI event callback interface:
+  - `EdenIOSRuntimeSetEventCallback(...)`
+  - `EdenIOSRuntimeEventType` (`START`, `STOP`, `TICK`)
+- Extended runtime state payload:
+  - `session_id`
+  - `tick_count`
+
+File: `src/ios/ios_runtime_c_api.cpp`
+
+- Added C-to-C++ translation layer for runtime start options and status output.
+- Added report-buffer output with null-termination guarantees.
+- Added callback registration state and dispatch hooks for runtime events.
+- Added event dispatch on start, stop, and tick operations.
+
+File: `src/ios/ios_runtime_objc_bridge.h`
+
+- Added Objective-C runtime bridge interfaces:
+  - `EdenIOSRuntimeBridge`
+  - `EdenIOSRuntimeBridgeResult`
+
+File: `src/ios/ios_runtime_objc_bridge.mm`
+
+- Added Objective-C++ app-facing runtime controls:
+  - `+startWithRequestJIT:enableValidationLayers:gamePath:`
+  - `+stop`
+  - `+tick`
+  - `+state`
+- Added marshaling between NSString and C ABI structs.
+- Extended ObjC result object with polling metadata:
+  - `sessionID`
+  - `tickCount`
+- Added NotificationCenter bridge for reactive runtime events:
+  - `EdenIOSRuntimeEventNotification`
+  - payload keys for type, running, lastStartSucceeded, sessionID, tickCount, and report
+  - bridge method `+setEventNotificationsEnabled:`
+
+### 11) Concrete iOS runtime controller logic (view-model)
+File: `src/ios/CMakeLists.txt`
+
+- Added iOS-only runtime view-model sources:
+  - `ios_runtime_view_model.h`
+  - `ios_runtime_view_model.mm`
+
+File: `src/ios/ios_runtime_view_model.h`
+
+- Added app-facing runtime view-model interface:
+  - stores latest runtime result
+  - exposes user-readable `statusText`
+  - exposes command methods: `startWithGamePath`, `stop`, `tick`, `refreshState`
+  - optional callback `onStateChanged` for UI binding
+
+File: `src/ios/ios_runtime_view_model.mm`
+
+- Implemented concrete controller-level logic for iOS app shell:
+  - subscribes to runtime NotificationCenter events
+  - keeps local state in sync with runtime bridge
+  - formats runtime state into display-friendly status text
+  - emits callback on each state change
+- Added initialization flow that enables event notifications and performs initial state sync.
+- Added cleanup flow by unregistering NotificationCenter observer on dealloc.
+
+### 12) UIKit demo app-shell controller
+File: `src/ios/CMakeLists.txt`
+
+- Added iOS-only UIKit demo controller sources:
+  - `ios_runtime_demo_controller.h`
+  - `ios_runtime_demo_controller.mm`
+
+File: `src/ios/ios_runtime_demo_controller.h`
+
+- Added UIKit controller declaration for runtime demo screen:
+  - `EdenIOSRuntimeDemoController`
+  - designated initializer with `requestJIT` and `enableValidationLayers`
+
+File: `src/ios/ios_runtime_demo_controller.mm`
+
+- Implemented minimal interactive runtime demo screen:
+  - game path input field
+  - action buttons: Start, Stop, Tick, Refresh
+  - status label with monospaced diagnostics output
+- Bound all actions to `EdenIOSRuntimeViewModel` command methods.
+- Subscribed to view-model `onStateChanged` callback and updated UI state on main thread.
+
+### 13) CI hardening for iOS bootstrap
+File: `CMakeLists.txt`
+
+- Strengthened iOS profile for CI by forcing non-essential deps off:
+  - `ENABLE_CUBEB=OFF`
+  - `ENABLE_LIBUSB=OFF`
+
+File: `externals/CMakeLists.txt`
+
+- Skipped SDL2 external setup and discovery for iOS bootstrap path:
+  - SDL2 handling now runs only when `NOT ANDROID AND NOT PLATFORM_IOS`
+
+File: `src/audio_core/CMakeLists.txt`
+
+- Added iOS branch that skips SDL2 sink wiring for bootstrap builds:
+  - avoids linking `SDL2::SDL2` in iOS bootstrap mode
+  - keeps Android and non-iOS behavior unchanged
+
+### 14) GitHub Actions workflow for iOS bootstrap
+File: `.github/workflows/ios-bootstrap.yml`
+
+- Added new GitHub Actions pipeline to build iOS bootstrap target on `macos-14`.
+- Triggered on `workflow_dispatch`, relevant `pull_request` paths, and relevant `push` paths.
+- Configures CMake for iOS simulator (`iphonesimulator`, `arm64`) and builds:
+  - target `yuzu-ios-bootstrap`
+- Includes tool version printout for easier CI troubleshooting.
+
+### 15) Runtime loader preflight integration
+File: `src/ios/ios_runtime_session.cpp`
+
+- Upgraded runtime start gate from placeholder-only checks to core loader preflight:
+  - open game via virtual filesystem (`RealVfsFilesystem` + `Core::GetGameFileFromPath`)
+  - detect file type with `Loader::IdentifyFile`
+  - verify container bootability with `Loader::IsBootableGameContainer` for NSP/XCI
+- Runtime start now rejects with explicit loader preflight reason when any loader gate fails.
+- Runtime report now includes loader diagnostics fields:
+  - `loader_file_opened`
+  - `loader_type`
+  - `loader_type_known`
+  - `loader_bootable`
+
+### 16) Headless Core::System load path for iOS runtime start
+File: `src/ios/CMakeLists.txt`
+
+- Added iOS headless emu window sources to bootstrap target:
+  - `ios_emu_window_headless.h`
+  - `ios_emu_window_headless.cpp`
+
+File: `src/ios/ios_emu_window_headless.h`
+
+- Added `EmuWindowIOSHeadless` implementation contract for iOS runtime loading.
+
+File: `src/ios/ios_emu_window_headless.cpp`
+
+- Implemented minimal headless emu window with:
+  - `WindowSystemType::Headless`
+  - dummy graphics context
+  - always-shown frontend signal
+
+File: `src/ios/ios_runtime_session.cpp`
+
+- Upgraded runtime start flow to attempt real core load after preflight:
+  - create `Core::System`
+  - initialize system and apply `RendererBackend::Null`
+  - set content provider and real filesystem
+  - create factories via filesystem controller
+  - call `Core::System::Load` using headless emu window
+  - start GPU and notify CPU manager GPU-ready on success
+- Added core teardown logic on stop and on load failure.
+- Added runtime report fields for core load result:
+  - `core_load_result=success`
+  - numeric failure code when load fails
+
+## Current Result
+
+- iOS bootstrap build profile exists.
+- iOS bootstrap target exists and is wired into source tree.
+- MoltenVK support on iOS path is now toolchain-based instead of macOS artifact-based.
+- Bootstrap API now provides preflight checks and machine-readable report strings for frontend bring-up.
+- C ABI bridge now exists so Swift/ObjC wrappers can call bootstrap preflight safely.
+- Objective-C++ bridge now exists so iOS app code can call bootstrap preflight without touching C++ directly.
+- Runtime placeholder controls now exist end-to-end (C++ core, C ABI, Objective-C++ app layer).
+- Runtime placeholder now supports pollable ticking and per-session IDs for UI state tracking.
+- Runtime now also exposes reactive event callbacks for start, stop, and tick.
+- iOS app shell now has concrete controller/view-model logic that can be bound directly by Swift/ObjC UI.
+- A concrete UIKit demo screen is now available as a practical integration reference.
+- A dedicated GitHub Actions workflow is now available for iOS bootstrap build smoke tests.
+- Runtime start validation now includes real core-loader checks, not only path-level checks.
+- Runtime start now also attempts headless `Core::System::Load` before marking session as running.
+
+## Known Limitations (Expected at This Stage)
+
+- SwiftUI views are not committed yet; UIKit demo controller is now available.
+- Runtime start or stop currently uses placeholder session control, not full emulation execution handoff yet.
+- No iOS packaging/project generation logic included in this step.
+- MoltenVK must be provided by the iOS build environment/toolchain.
+- CI workflow validates bootstrap compilation path, not gameplay/runtime correctness yet.
+- `Core::System::Load` is now attempted headless; long-running run loop integration is still pending.

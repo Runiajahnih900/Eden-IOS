@@ -212,10 +212,12 @@ option(YUZU_LEGACY "Apply patches that improve compatibility with older GPUs (e.
 
 option(NIGHTLY_BUILD "Use Nightly qualifiers in the update checker and build metadata" OFF)
 
-cmake_dependent_option(YUZU_ROOM "Enable dedicated room functionality" ON "NOT ANDROID" OFF)
+cmake_dependent_option(YUZU_ROOM "Enable dedicated room functionality" ON "NOT ANDROID AND NOT PLATFORM_IOS" OFF)
 cmake_dependent_option(YUZU_ROOM_STANDALONE "Enable standalone room executable" ON "YUZU_ROOM" OFF)
 
-cmake_dependent_option(YUZU_CMD "Compile the eden-cli executable" ON "NOT ANDROID" OFF)
+cmake_dependent_option(YUZU_CMD "Compile the eden-cli executable" ON "NOT ANDROID AND NOT PLATFORM_IOS" OFF)
+
+option(ENABLE_IOS_BOOTSTRAP "Enable the iOS bootstrap frontend target" OFF)
 
 cmake_dependent_option(YUZU_CRASH_DUMPS "Compile crash dump (Minidump) support" OFF "WIN32 OR PLATFORM_LINUX" OFF)
 
@@ -223,6 +225,24 @@ option(YUZU_DOWNLOAD_TIME_ZONE_DATA "Always download time zone binaries" ON)
 set(YUZU_TZDB_PATH "" CACHE STRING "Path to a pre-downloaded timezone database")
 
 cmake_dependent_option(YUZU_USE_BUNDLED_MOLTENVK "Download bundled MoltenVK lib" ON "APPLE" OFF)
+
+if (PLATFORM_IOS)
+    message(STATUS "Configuring iOS bootstrap profile")
+
+    set(ENABLE_QT OFF CACHE BOOL "Enable the Qt frontend" FORCE)
+    set(ENABLE_QT_TRANSLATION OFF CACHE BOOL "Enable translations for the Qt frontend" FORCE)
+    set(ENABLE_UPDATE_CHECKER OFF CACHE BOOL "Enable update checker (for Qt and Android)" FORCE)
+    set(ENABLE_CUBEB OFF CACHE BOOL "Enables the cubeb audio backend" FORCE)
+    set(ENABLE_LIBUSB OFF CACHE BOOL "Enable the use of LibUSB" FORCE)
+    set(USE_DISCORD_PRESENCE OFF CACHE BOOL "Enables Discord Rich Presence" FORCE)
+    set(ENABLE_WEB_SERVICE OFF CACHE BOOL "Enable web services (telemetry, etc.)" FORCE)
+    set(YUZU_ROOM OFF CACHE BOOL "Enable dedicated room functionality" FORCE)
+    set(YUZU_ROOM_STANDALONE OFF CACHE BOOL "Enable standalone room executable" FORCE)
+    set(YUZU_CMD OFF CACHE BOOL "Compile the eden-cli executable" FORCE)
+    set(ENABLE_IOS_BOOTSTRAP ON CACHE BOOL "Enable the iOS bootstrap frontend target" FORCE)
+
+    add_compile_definitions(YUZU_PLATFORM_IOS=1)
+endif()
 
 option(YUZU_DISABLE_LLVM "Disable LLVM (useful for CI)" OFF)
 

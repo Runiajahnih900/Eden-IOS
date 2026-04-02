@@ -245,6 +245,8 @@ if(ANDROID)
 
     target_link_libraries(audio_core PRIVATE oboe)
     target_compile_definitions(audio_core PUBLIC HAVE_OBOE)
+elseif(PLATFORM_IOS)
+    message(STATUS "audio_core: skipping SDL2 sink for iOS bootstrap")
 else()
     target_sources(audio_core PRIVATE
         sink/sdl2_sink.cpp

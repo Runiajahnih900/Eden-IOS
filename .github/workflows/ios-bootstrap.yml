@@ -1,0 +1,56 @@
+name: iOS Bootstrap CI
+
+on:
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "CMakeLists.txt"
+      - "externals/**"
+      - "src/**"
+      - "docs/IOS_PORTING_LOG.md"
+      - ".github/workflows/ios-bootstrap.yml"
+  push:
+    branches:
+      - main
+      - master
+    paths:
+      - "CMakeLists.txt"
+      - "externals/**"
+      - "src/**"
+      - "docs/IOS_PORTING_LOG.md"
+      - ".github/workflows/ios-bootstrap.yml"
+
+jobs:
+  ios-bootstrap:
+    runs-on: macos-14
+    timeout-minutes: 120
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Show tool versions
+        run: |
+          cmake --version
+          xcodebuild -version
+          clang --version
+
+      - name: Configure iOS bootstrap (simulator)
+        run: |
+          cmake -S . -B build-ios \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_SYSROOT=iphonesimulator \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
+            -DENABLE_IOS_BOOTSTRAP=ON \
+            -DENABLE_QT=OFF \
+            -DYUZU_CMD=OFF \
+            -DYUZU_ROOM=OFF \
+            -DYUZU_ROOM_STANDALONE=OFF
+
+      - name: Build iOS bootstrap target
+        run: cmake --build build-ios --target yuzu-ios-bootstrap --parallel
