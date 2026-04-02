@@ -8,7 +8,6 @@
 
 #include <array>
 #include <span>
-#include <openssl/err.h>
 
 #include "core/hle/service/nfp/nfp_types.h"
 

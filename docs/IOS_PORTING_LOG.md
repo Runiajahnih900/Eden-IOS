@@ -892,3 +892,16 @@ File:
 
 - Wrapped `GitHubAPI_EdenReleases` constant with `CPPHTTPLIB_OPENSSL_SUPPORT` guard.
 - Prevents `-Wunused-const-variable` from failing iOS bootstrap builds when HTTPS fetch path is compiled out.
+
+### 60) Split Amiibo crypto source for iOS bootstrap (no OpenSSL)
+Files:
+- `src/core/CMakeLists.txt`
+- `src/core/hle/service/nfc/common/amiibo_crypto.h`
+- `src/core/hle/service/nfc/common/amiibo_crypto_ios.cpp`
+
+- Removed unconditional `amiibo_crypto.cpp` from base `core` source list.
+- Added platform source selection:
+  - iOS uses `amiibo_crypto_ios.cpp`
+  - non-iOS keeps `amiibo_crypto.cpp` (OpenSSL path)
+- Removed direct OpenSSL header dependency from `amiibo_crypto.h` so it can be included in iOS builds.
+- Added compile-safe iOS fallback implementation for Amiibo crypto entrypoints to unblock iOS bootstrap profile compilation.

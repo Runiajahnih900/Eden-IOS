@@ -768,7 +768,6 @@ add_library(core STATIC
     hle/service/mnpp/mnpp_app.h
     hle/service/ncm/ncm.cpp
     hle/service/ncm/ncm.h
-    hle/service/nfc/common/amiibo_crypto.cpp
     hle/service/nfc/common/amiibo_crypto.h
     hle/service/nfc/common/device.cpp
     hle/service/nfc/common/device.h
@@ -1268,12 +1267,14 @@ endif()
 if (PLATFORM_IOS)
     target_sources(core PRIVATE crypto/aes_util_ios.cpp)
     target_sources(core PRIVATE debugger/debugger_ios.cpp)
+    target_sources(core PRIVATE hle/service/nfc/common/amiibo_crypto_ios.cpp)
     target_sources(core PRIVATE hle/service/ssl/ssl_backend_none.cpp)
 else()
     target_sources(core PRIVATE crypto/aes_util.cpp)
     target_sources(core PRIVATE debugger/debugger.cpp)
     target_sources(core PRIVATE debugger/gdbstub.cpp)
     target_sources(core PRIVATE debugger/gdbstub_arch.cpp)
+    target_sources(core PRIVATE hle/service/nfc/common/amiibo_crypto.cpp)
     target_sources(core PRIVATE hle/service/ssl/ssl_backend_openssl.cpp)
     target_link_libraries(core PRIVATE OpenSSL::SSL OpenSSL::Crypto)
     target_compile_definitions(core PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
