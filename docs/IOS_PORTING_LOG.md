@@ -759,3 +759,12 @@ File: `src/common/polyfill_thread.h`
 - Added fallback implementation guarded by `__cpp_lib_jthread`.
 - Provides minimal `std::jthread` behavior (`request_stop`, `joinable`, `join`, move semantics) using `std::thread` + `std::stop_source`.
 - Avoids redefining `std::stop_token`, preventing ambiguity on libc++ variants that expose `stop_token` but not `jthread`.
+
+### 46) Exclude Boost.Process from iOS bootstrap dependency set
+Files:
+- `CMakeLists.txt`
+- `src/core/CMakeLists.txt`
+
+- Removed `process` from `BOOST_INCLUDE_LIBRARIES` when `PLATFORM_IOS` is enabled.
+- Skipped linking `Boost::process` in `core` for iOS profile.
+- Avoids Boost.Process source build on iOS toolchains, fixing `wordexp is unavailable: not available on iOS` failure.
