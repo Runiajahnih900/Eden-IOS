@@ -952,3 +952,13 @@ File:
   `duration_cast` and manual comparison.
 - Avoids libc++ template deduction failure (`no matching function for call to 'min'`) when
   `remaining` and `milliseconds` have different duration types.
+
+### 66) Fix Objective-C dealloc warning promoted to error in iOS CI
+File:
+- `src/ios/ios_runtime_view_model.mm`
+
+- Added non-ARC guarded `[super dealloc]` call in `-dealloc`:
+  - `#if !__has_feature(objc_arc)`
+  - `[super dealloc];`
+  - `#endif`
+- Resolves `-Wobjc-missing-super-calls` failure in strict warning-as-error iOS bootstrap builds.
