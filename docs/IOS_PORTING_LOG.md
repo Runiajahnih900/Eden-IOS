@@ -660,7 +660,7 @@ File: `CMakeLists.txt`
 - In iOS bootstrap profile, force Boost.Context build tuple to arm64 iOS values:
   - `BOOST_CONTEXT_ARCHITECTURE=arm64`
   - `BOOST_CONTEXT_ABI=aapcs`
-  - `BOOST_CONTEXT_BINARY_FORMAT=macho`
+  - `BOOST_CONTEXT_BINARY_FORMAT=mach-o`
   - `BOOST_CONTEXT_ASSEMBLER=gas`
   - `BOOST_CONTEXT_ASM_SUFFIX=.S`
 - Prevents Boost.Context from selecting `x86_64_sysv_macho_gas.S` sources during iOS arm64 build.
@@ -669,3 +669,14 @@ File: `.github/workflows/ios-bootstrap.yml`
 
 - Added `-DCMAKE_SYSTEM_PROCESSOR=arm64` to both configure and debug-find replay commands.
 - Improves cross-compile architecture detection consistency on GitHub macOS runners.
+
+### 35) Strengthen Boost.Context options at package call site
+File: `CMakeLists.txt`
+
+- Updated iOS path to pass Boost.Context options directly via `AddJsonPackage(NAME boost OPTIONS ...)`.
+- Ensures settings are applied at dependency configure time even when upstream package defaults differ.
+
+File: `.github/workflows/ios-bootstrap.yml`
+
+- Added explicit `-DBOOST_CONTEXT_*` flags to configure and debug-find commands.
+- Extended cache summary filter to include `BOOST_CONTEXT*` and `CMAKE_SYSTEM_PROCESSOR` for verification in CI summary.

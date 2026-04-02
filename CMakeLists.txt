@@ -245,7 +245,7 @@ if (PLATFORM_IOS)
     # Boost.Context auto-detection may pick host arch/ABI in cross builds; force iOS arm64 tuple.
     set(BOOST_CONTEXT_ARCHITECTURE arm64 CACHE STRING "Boost.Context architecture" FORCE)
     set(BOOST_CONTEXT_ABI aapcs CACHE STRING "Boost.Context ABI" FORCE)
-    set(BOOST_CONTEXT_BINARY_FORMAT macho CACHE STRING "Boost.Context binary format" FORCE)
+    set(BOOST_CONTEXT_BINARY_FORMAT mach-o CACHE STRING "Boost.Context binary format" FORCE)
     set(BOOST_CONTEXT_ASSEMBLER gas CACHE STRING "Boost.Context assembler" FORCE)
     set(BOOST_CONTEXT_ASM_SUFFIX .S CACHE STRING "Boost.Context assembler source suffix" FORCE)
     set(HTTPLIB_USE_OPENSSL_IF_AVAILABLE OFF CACHE BOOL "Allow cpp-httplib to use OpenSSL when available" FORCE)
@@ -415,7 +415,18 @@ set(ENABLE_TESTING OFF)
 # boost
 set(BOOST_INCLUDE_LIBRARIES algorithm icl pool container heap asio headers process filesystem crc variant)
 
-AddJsonPackage(boost)
+if (PLATFORM_IOS)
+    AddJsonPackage(
+        NAME boost
+        OPTIONS
+            "BOOST_CONTEXT_ARCHITECTURE arm64"
+            "BOOST_CONTEXT_ABI aapcs"
+            "BOOST_CONTEXT_BINARY_FORMAT mach-o"
+            "BOOST_CONTEXT_ASSEMBLER gas"
+            "BOOST_CONTEXT_ASM_SUFFIX .S")
+else()
+    AddJsonPackage(boost)
+endif()
 
 # really annoying thing where boost::headers doesn't work with cpm
 # TODO(crueter) investigate
