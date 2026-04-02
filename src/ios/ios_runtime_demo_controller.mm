@@ -24,7 +24,11 @@
     if (self) {
         _viewModel = [[EdenIOSRuntimeViewModel alloc] initWithRequestJIT:requestJIT
                                                    enableValidationLayers:enableValidationLayers];
+#if __has_feature(objc_arc)
         __weak typeof(self) weakSelf = self;
+#else
+        __unsafe_unretained typeof(self) weakSelf = self;
+#endif
         _viewModel.onStateChanged = ^(EdenIOSRuntimeBridgeResult* result, NSString* statusText) {
             (void)result;
             dispatch_async(dispatch_get_main_queue(), ^{

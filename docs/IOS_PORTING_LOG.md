@@ -962,3 +962,12 @@ File:
   - `[super dealloc];`
   - `#endif`
 - Resolves `-Wobjc-missing-super-calls` failure in strict warning-as-error iOS bootstrap builds.
+
+### 67) Make runtime demo block capture compatible with MRC builds
+File:
+- `src/ios/ios_runtime_demo_controller.mm`
+
+- Replaced unconditional `__weak` self capture with ARC/MRC split:
+  - ARC: `__weak typeof(self) weakSelf = self;`
+  - non-ARC (MRC): `__unsafe_unretained typeof(self) weakSelf = self;`
+- Resolves iOS CI failure: `cannot create __weak reference in file using manual reference counting`.
