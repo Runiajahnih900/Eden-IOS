@@ -713,3 +713,12 @@ File: `src/common/device_power_state.cpp`
 - Wrapped IOKit includes behind `__has_include` checks and compile-time flag `EDEN_HAS_APPLE_IOKIT_POWER`.
 - Apple power-source branch now compiles only when the required headers are actually available.
 - Prevents fatal include errors on iOS simulator SDKs even if macOS power-state source is selected unexpectedly.
+
+### 40) Expose first configure/build hard error as CI annotation
+File: `.github/workflows/ios-bootstrap.yml`
+
+- In failure diagnostics step, capture the first configure hard error and first build hard error from log files.
+- Emit them via GitHub workflow commands:
+  - `::error title=Configure failure::...`
+  - `::error title=Build failure::...`
+- Makes root-cause retrieval possible from public check-run annotations API, enabling autonomous fix loops without manual copy-paste of full logs.

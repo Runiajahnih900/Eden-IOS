@@ -79,6 +79,9 @@ jobs:
         run: |
           set +e
 
+          first_config_error=""
+          first_build_error=""
+
           {
             echo "## iOS Bootstrap Failure Summary"
             echo
@@ -123,6 +126,7 @@ jobs:
           echo "::group::Configure hard errors (short)"
           if [ -f build-ios/configure.log ]; then
             grep -nE "CMake Error at|Could NOT find|Configuring incomplete, errors occurred" build-ios/configure.log | tail -n 80 || true
+            first_config_error=$(grep -nE "CMake Error at|Could NOT find|Configuring incomplete, errors occurred" build-ios/configure.log | head -n 1 || true)
             {
               echo "### Configure hard errors"
               echo '```text'
@@ -146,6 +150,7 @@ jobs:
           echo "::group::Build hard errors (short)"
           if [ -f build-ios/build.log ]; then
             grep -nEi "error:|fatal error:|undefined reference|ld: error|ninja: build stopped|subcommand failed" build-ios/build.log | tail -n 120 || true
+            first_build_error=$(grep -nEi "fatal error:|error:|undefined reference|ld: error" build-ios/build.log | head -n 1 || true)
             {
               echo "### Build hard errors"
               echo '```text'
@@ -165,6 +170,13 @@ jobs:
             echo "build-ios/build.log not found"
           fi
           echo "::endgroup::"
+
+          if [ -n "$first_config_error" ]; then
+            echo "::error title=Configure failure::$first_config_error"
+          fi
+          if [ -n "$first_build_error" ]; then
+            echo "::error title=Build failure::$first_build_error"
+          fi
 
           echo "::group::Reconfigure with --debug-find"
           mkdir -p build-ios-debug
