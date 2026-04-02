@@ -752,3 +752,10 @@ Files:
 - Added `Common::WaitWithStopToken(...)` helper that uses native stop-token `wait` overload when available and a timed wait fallback otherwise.
 - Replaced direct `cv.wait(lock, stop_token, predicate)` calls in common synchronization utilities with the helper.
 - Prevents Apple/iOS libc++ builds from failing when the stop-token `wait` overload is not present.
+
+### 45) Add `std::jthread` compatibility shim when libc++ lacks it
+File: `src/common/polyfill_thread.h`
+
+- Added fallback implementation guarded by `__cpp_lib_jthread`.
+- Provides minimal `std::jthread` behavior (`request_stop`, `joinable`, `join`, move semantics) using `std::thread` + shared stop flag.
+- Includes fallback `stop_token` and `stop_callback` only when standard stop-token support is unavailable.
