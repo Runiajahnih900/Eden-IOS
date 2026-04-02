@@ -23,7 +23,6 @@ add_library(core STATIC
     core_timing.h
     cpu_manager.cpp
     cpu_manager.h
-    crypto/aes_util.cpp
     crypto/aes_util.h
     crypto/ctr_encryption_layer.cpp
     crypto/ctr_encryption_layer.h
@@ -1270,8 +1269,10 @@ if ((ARCHITECTURE_x86_64 OR ARCHITECTURE_arm64) AND NOT PLATFORM_IOS)
 endif()
 
 if (PLATFORM_IOS)
+    target_sources(core PRIVATE crypto/aes_util_ios.cpp)
     target_sources(core PRIVATE hle/service/ssl/ssl_backend_none.cpp)
 else()
+    target_sources(core PRIVATE crypto/aes_util.cpp)
     target_sources(core PRIVATE hle/service/ssl/ssl_backend_openssl.cpp)
     target_link_libraries(core PRIVATE OpenSSL::SSL OpenSSL::Crypto)
     target_compile_definitions(core PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)

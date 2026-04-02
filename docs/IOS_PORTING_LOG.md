@@ -797,3 +797,14 @@ Files:
 - Disabled dynarmic source/link block for `PLATFORM_IOS` in `core` target.
 - Guarded dynarmic exclusive monitor include/use in `exclusive_monitor.cpp` out of iOS builds.
 - Prevents bootstrap build failures from missing `dynarmic/interface/*` headers in iOS CI profile.
+
+### 50) Split AES utility source for iOS bootstrap (no OpenSSL)
+Files:
+- `src/core/CMakeLists.txt`
+- `src/core/crypto/aes_util_ios.cpp`
+
+- Removed unconditional `crypto/aes_util.cpp` from `core` source list.
+- Added platform source selection:
+  - iOS uses `crypto/aes_util_ios.cpp`
+  - non-iOS keeps `crypto/aes_util.cpp` (OpenSSL path)
+- Added a minimal iOS bootstrap AES implementation to avoid OpenSSL header dependency (`openssl/err.h`) in CI compile profile.
