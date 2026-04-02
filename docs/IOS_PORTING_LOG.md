@@ -990,3 +990,13 @@ File:
   - `core/hle/service/filesystem/filesystem.h`
 - Resolves compile error when calling
   `g_system->GetFileSystemController().CreateFactories(...)` from iOS runtime load path.
+
+### 70) Fix incomplete GPU/CpuManager types in iOS runtime load path
+File:
+- `src/ios/ios_runtime_session.cpp`
+
+- Added missing concrete type includes required by direct method calls:
+  - `core/cpu_manager.h` for `GetCpuManager().OnGpuReady()`
+  - `video_core/gpu.h` for `GPU().Start()`
+- Resolves incomplete-type compile failures after the runtime path progressed past filesystem setup.
+

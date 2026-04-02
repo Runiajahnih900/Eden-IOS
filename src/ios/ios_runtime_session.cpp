@@ -12,11 +12,13 @@
 #include "ios_bootstrap.h"
 #include "ios_emu_window_headless.h"
 #include "core/core.h"
+#include "core/cpu_manager.h"
 #include "core/file_sys/registered_cache.h"
 #include "core/file_sys/vfs/vfs_real.h"
 #include "core/hle/service/am/applet_manager.h"
 #include "core/hle/service/filesystem/filesystem.h"
 #include "core/loader/loader.h"
+#include "video_core/gpu.h"
 
 namespace IOSFrontend {
 
