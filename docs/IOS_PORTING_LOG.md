@@ -863,3 +863,10 @@ File:
   - skips dynarmic backend construction
   - resets CPU interface slots to null in bootstrap compile profile
 - Prevents iOS build from pulling dynarmic headers like `dynarmic/interface/halt_reason.h` that are absent in CI profile.
+
+### 56) Fix missing exclusive monitor declaration after dynarmic include guards
+File:
+- `src/core/hle/kernel/k_process.cpp`
+
+- Added explicit include for `core/arm/exclusive_monitor.h`.
+- Restores visibility of `Core::MakeExclusiveMonitor(...)` after dynarmic include guards were introduced for iOS bootstrap profile.

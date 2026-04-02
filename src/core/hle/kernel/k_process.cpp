@@ -7,6 +7,7 @@
 #include <random>
 #include "common/scope_exit.h"
 #include "common/settings.h"
+#include "core/arm/exclusive_monitor.h"
 #if !defined(YUZU_PLATFORM_IOS)
 #include "core/arm/dynarmic/arm_dynarmic.h"
 #include "core/arm/dynarmic/dynarmic_exclusive_monitor.h"
