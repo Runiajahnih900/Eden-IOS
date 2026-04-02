@@ -39,6 +39,8 @@ jobs:
 
       - name: Configure iOS bootstrap (simulator)
         run: |
+          mkdir -p build-ios
+          set -o pipefail
           cmake -S . -B build-ios \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
@@ -51,7 +53,8 @@ jobs:
             -DENABLE_QT=OFF \
             -DYUZU_CMD=OFF \
             -DYUZU_ROOM=OFF \
-            -DYUZU_ROOM_STANDALONE=OFF
+            -DYUZU_ROOM_STANDALONE=OFF \
+            2>&1 | tee build-ios/configure.log
 
       - name: Build iOS bootstrap target
         run: cmake --build build-ios --target yuzu-ios-bootstrap --parallel
@@ -102,18 +105,26 @@ jobs:
           fi
           echo "::endgroup::"
 
-          echo "::group::Detected error lines (short)"
-          if [ -f build-ios/CMakeFiles/CMakeConfigureLog.yaml ]; then
-            grep -nEi "cmake error|could not find|fatal|failed|openssl|httplib|carbon" build-ios/CMakeFiles/CMakeConfigureLog.yaml | tail -n 80 || true
+          echo "::group::Configure hard errors (short)"
+          if [ -f build-ios/configure.log ]; then
+            grep -nE "CMake Error at|Could NOT find|Configuring incomplete, errors occurred" build-ios/configure.log | tail -n 80 || true
             {
-              echo "### ConfigureLog matched errors"
+              echo "### Configure hard errors"
               echo '```text'
-              grep -nEi "cmake error|could not find|fatal|failed|openssl|httplib|carbon" build-ios/CMakeFiles/CMakeConfigureLog.yaml | tail -n 80 || true
+              grep -nE "CMake Error at|Could NOT find|Configuring incomplete, errors occurred" build-ios/configure.log | tail -n 80 || true
+              echo '```'
+              echo
+              echo "### Root cause snippet"
+              echo '```text'
+              awk '
+                /CMake Error at|Could NOT find/ {capture=1;left=14}
+                capture && left>0 {print; left--; if (left==0) capture=0}
+              ' build-ios/configure.log | head -n 120 || true
               echo '```'
               echo
             } >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "build-ios/CMakeFiles/CMakeConfigureLog.yaml not found"
+            echo "build-ios/configure.log not found"
           fi
           echo "::endgroup::"
 
@@ -149,6 +160,7 @@ jobs:
           if-no-files-found: ignore
           path: |
             build-ios/CMakeCache.txt
+            build-ios/configure.log
             build-ios/CMakeFiles/CMakeConfigureLog.yaml
             build-ios/CMakeFiles/CMakeOutput.log
             build-ios/CMakeFiles/CMakeError.log

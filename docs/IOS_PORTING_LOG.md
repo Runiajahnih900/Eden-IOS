@@ -583,3 +583,14 @@ File: `.github/workflows/ios-bootstrap.yml`
 - Added concise matched-error extraction (`cmake error`, `could not find`, `fatal`, `failed`, `openssl`, `httplib`, `carbon`).
 - Added compact failure summary to `GITHUB_STEP_SUMMARY`.
 - Kept full `--debug-find` output only in artifact file (no longer spamming main log view).
+
+### 28) Capture real configure errors (not try-compile noise)
+File: `.github/workflows/ios-bootstrap.yml`
+
+- Configure step now saves full output to `build-ios/configure.log` using `tee`.
+- Failure summary now extracts only hard configure markers from `configure.log`:
+  - `CMake Error at`
+  - `Could NOT find`
+  - `Configuring incomplete, errors occurred`
+- Added `Root cause snippet` block in step summary using contextual lines around the first hard error markers.
+- Added `build-ios/configure.log` to uploaded diagnostics artifact.
