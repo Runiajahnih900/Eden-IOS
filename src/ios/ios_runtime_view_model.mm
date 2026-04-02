@@ -64,7 +64,7 @@
     NSDictionary* userInfo = note.userInfo;
     BOOL running = [userInfo[EdenIOSRuntimeEventRunningKey] boolValue];
     BOOL lastStartSucceeded = [userInfo[EdenIOSRuntimeEventLastStartSucceededKey] boolValue];
-        BOOL runThreadActive = [userInfo[EdenIOSRuntimeEventRunThreadActiveKey] boolValue];
+    BOOL runThreadActive = [userInfo[EdenIOSRuntimeEventRunThreadActiveKey] boolValue];
     NSUInteger sessionID = [userInfo[EdenIOSRuntimeEventSessionIDKey] unsignedIntegerValue];
     NSUInteger tickCount = [userInfo[EdenIOSRuntimeEventTickCountKey] unsignedIntegerValue];
     NSString* report = userInfo[EdenIOSRuntimeEventReportKey] ?: @"";
@@ -72,7 +72,7 @@
     EdenIOSRuntimeBridgeResult* result =
         [[EdenIOSRuntimeBridgeResult alloc] initWithRunning:running
                                          lastStartSucceeded:lastStartSucceeded
-                                                                                         runThreadActive:runThreadActive
+                                            runThreadActive:runThreadActive
                                                   sessionID:sessionID
                                                   tickCount:tickCount
                                                     report:report];

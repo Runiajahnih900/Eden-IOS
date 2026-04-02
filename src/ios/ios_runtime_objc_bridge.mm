@@ -63,7 +63,7 @@ void RuntimeEventNotificationCallback(const EdenIOSRuntimeEventType event_type,
 
 - (instancetype)initWithRunning:(BOOL)running
              lastStartSucceeded:(BOOL)lastStartSucceeded
-        runThreadActive:(BOOL)runThreadActive
+                runThreadActive:(BOOL)runThreadActive
                       sessionID:(NSUInteger)sessionID
                       tickCount:(NSUInteger)tickCount
                         report:(NSString*)report {
@@ -71,7 +71,7 @@ void RuntimeEventNotificationCallback(const EdenIOSRuntimeEventType event_type,
     if (self) {
         _running = running;
         _lastStartSucceeded = lastStartSucceeded;
-    _runThreadActive = runThreadActive;
+        _runThreadActive = runThreadActive;
         _sessionID = sessionID;
         _tickCount = tickCount;
         _report = [report copy];
@@ -102,7 +102,7 @@ void RuntimeEventNotificationCallback(const EdenIOSRuntimeEventType event_type,
 
     return [[EdenIOSRuntimeBridgeResult alloc] initWithRunning:(state.running != 0)
                                              lastStartSucceeded:(state.last_start_succeeded != 0)
-                               runThreadActive:(state.run_thread_active != 0)
+                                                                runThreadActive:(state.run_thread_active != 0)
                                                      sessionID:(NSUInteger)state.session_id
                                                      tickCount:(NSUInteger)state.tick_count
                                                         report:report];
@@ -121,7 +121,7 @@ void RuntimeEventNotificationCallback(const EdenIOSRuntimeEventType event_type,
 
     return [[EdenIOSRuntimeBridgeResult alloc] initWithRunning:(state.running != 0)
                                              lastStartSucceeded:(state.last_start_succeeded != 0)
-                               runThreadActive:(state.run_thread_active != 0)
+                                                                runThreadActive:(state.run_thread_active != 0)
                                                      sessionID:(NSUInteger)state.session_id
                                                      tickCount:(NSUInteger)state.tick_count
                                                         report:report];
@@ -136,7 +136,7 @@ void RuntimeEventNotificationCallback(const EdenIOSRuntimeEventType event_type,
 
     return [[EdenIOSRuntimeBridgeResult alloc] initWithRunning:(state.running != 0)
                                              lastStartSucceeded:(state.last_start_succeeded != 0)
-                               runThreadActive:(state.run_thread_active != 0)
+                                                                runThreadActive:(state.run_thread_active != 0)
                                                      sessionID:(NSUInteger)state.session_id
                                                      tickCount:(NSUInteger)state.tick_count
                                                         report:report];

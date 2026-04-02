@@ -6,6 +6,7 @@
 #include <mutex>
 #include <string>
 #include <thread>
+#include <atomic>
 
 #include "common/settings.h"
 #include "ios_bootstrap.h"
@@ -32,6 +33,7 @@ std::unique_ptr<Core::System> g_system;
 std::unique_ptr<EmuWindowIOSHeadless> g_emu_window;
 std::thread g_run_thread;
 bool g_run_thread_active = false;
+std::atomic<bool> g_run_thread_alive{false};
 
 struct LoaderPreflightResult {
     bool file_opened = false;
@@ -72,6 +74,7 @@ void TearDownSystemLocked() {
             g_run_thread.join();
         }
         g_run_thread_active = false;
+        g_run_thread_alive.store(false, std::memory_order_release);
         return;
     }
 
@@ -82,6 +85,7 @@ void TearDownSystemLocked() {
         g_run_thread.join();
     }
     g_run_thread_active = false;
+    g_run_thread_alive.store(false, std::memory_order_release);
 
     g_emu_window.reset();
     g_system.reset();
@@ -121,13 +125,16 @@ bool StartCoreLoadPath(const RuntimeStartRequest& request, std::string* out_repo
     if (request.start_execution_thread) {
         Core::System* const system = g_system.get();
         g_run_thread = std::thread([system] {
+            g_run_thread_alive.store(true, std::memory_order_release);
             if (system) {
                 void(system->Run());
             }
+            g_run_thread_alive.store(false, std::memory_order_release);
         });
         g_run_thread_active = true;
     } else {
         g_run_thread_active = false;
+        g_run_thread_alive.store(false, std::memory_order_release);
     }
 
     if (out_report) {
@@ -142,7 +149,8 @@ RuntimeSessionStatus BuildSnapshot() {
     RuntimeSessionStatus status{};
     status.running = g_running;
     status.last_start_succeeded = g_last_start_succeeded;
-    status.run_thread_active = g_run_thread_active;
+    const bool thread_alive = g_run_thread_alive.load(std::memory_order_acquire);
+    status.run_thread_active = g_run_thread_active && thread_alive;
     status.session_id = g_session_id;
     status.tick_count = g_tick_count;
     status.current_game_path = g_current_game_path;
@@ -230,6 +238,15 @@ void StopRuntimeSession() {
 
 RuntimeSessionStatus TickRuntimeSession() {
     std::scoped_lock lock(g_runtime_mutex);
+    const bool thread_alive = g_run_thread_alive.load(std::memory_order_acquire);
+
+    if (g_running && g_run_thread_active && !thread_alive) {
+        g_running = false;
+        g_run_thread_active = false;
+        g_last_report = "runtime-thread-finished";
+        return BuildSnapshot();
+    }
+
     if (g_running) {
         ++g_tick_count;
         g_last_report = "runtime-tick";

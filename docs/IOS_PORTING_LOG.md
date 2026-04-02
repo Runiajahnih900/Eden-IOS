@@ -395,6 +395,23 @@ File: `src/ios/ios_runtime_demo_controller.mm`
   - load-only mode
 - Wired switch state into view-model `startExecutionThread` option.
 
+### 18) Run thread lifecycle hardening
+File: `src/ios/ios_runtime_session.cpp`
+
+- Added atomic run-thread liveness tracking (`g_run_thread_alive`).
+- Runtime tick now detects completed run thread and updates session state/report:
+  - transitions to non-running state
+  - report marker `runtime-thread-finished`
+- Teardown now explicitly resets run-thread liveness state in all paths.
+
+File: `src/ios/ios_runtime_objc_bridge.mm`
+
+- Cleaned up formatting/readability for extended runtime result marshaling.
+
+File: `src/ios/ios_runtime_view_model.mm`
+
+- Cleaned up event handling formatting for `runThreadActive` propagation.
+
 ## Current Result
 
 - iOS bootstrap build profile exists.
@@ -412,6 +429,7 @@ File: `src/ios/ios_runtime_demo_controller.mm`
 - Runtime start validation now includes real core-loader checks, not only path-level checks.
 - Runtime start now also attempts headless `Core::System::Load` before marking session as running.
 - Runtime now can continue into a managed background `Core::System::Run` thread.
+- Runtime now detects background run-thread completion and reflects that in state/report.
 
 ## Known Limitations (Expected at This Stage)
 
@@ -422,3 +440,4 @@ File: `src/ios/ios_runtime_demo_controller.mm`
 - CI workflow validates bootstrap compilation path, not gameplay/runtime correctness yet.
 - `Core::System::Load` is now attempted headless; long-running run loop integration is still pending.
 - Managed run thread exists, but full lifecycle/perf tuning and gameplay validation are still pending.
+- Thread completion is now tracked, but robust pause/resume and crash-recovery behavior are still pending.
