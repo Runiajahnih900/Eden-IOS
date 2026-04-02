@@ -8,6 +8,9 @@
 
 namespace Core {
 
+// Keep a concrete impl type so unique_ptr<DebuggerImpl> can be destroyed on iOS.
+class DebuggerImpl {};
+
 Debugger::Debugger(Core::System& system, u16 server_port) {
     (void)system;
     (void)server_port;

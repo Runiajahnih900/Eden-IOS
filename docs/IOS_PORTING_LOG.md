@@ -926,3 +926,11 @@ File:
   - `EVP_DigestFinal_ex`
   - `EVP_sha256`
 - Keeps original OpenSSL-backed NCA integrity hashing behavior on non-iOS builds.
+
+### 63) Fix iOS Debugger unique_ptr incomplete-type build failure
+File:
+- `src/core/debugger/debugger_ios.cpp`
+
+- Added concrete iOS stub definition for `Core::DebuggerImpl` in the iOS debugger translation unit.
+- Ensures `std::unique_ptr<DebuggerImpl>` in `Debugger` has a complete pointee type at destructor instantiation time.
+- Resolves iOS CI failure from libc++ `unique_ptr` static assertion on incomplete type.
