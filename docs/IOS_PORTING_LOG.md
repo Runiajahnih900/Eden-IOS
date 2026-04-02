@@ -608,3 +608,18 @@ File: `CMakeLists.txt`
 - Changed optional RenderDoc lookup to quiet mode:
   - `find_package(RenderDoc MODULE QUIET)`
 - Prevents optional RenderDoc probe from polluting failure summary with non-blocking `Could NOT find` noise.
+
+### 30) Fix FFmpeg discovery failure in iOS bootstrap CI
+File: `CMakeLists.txt`
+
+- iOS profile now forces FFmpeg strategy to bundled mode:
+  - `YUZU_USE_BUNDLED_FFMPEG=ON`
+  - `YUZU_USE_EXTERNAL_FFMPEG=OFF`
+- Avoids system `find_package(FFmpeg REQUIRED)` path that failed on runner with missing `FFMPEG_INCLUDE_DIR`.
+
+File: `.github/workflows/ios-bootstrap.yml`
+
+- Configure and debug-find replay now pass explicit FFmpeg flags:
+  - `-DYUZU_USE_BUNDLED_FFMPEG=ON`
+  - `-DYUZU_USE_EXTERNAL_FFMPEG=OFF`
+- Keeps CI behavior aligned with iOS bootstrap profile regardless of cache or option order.

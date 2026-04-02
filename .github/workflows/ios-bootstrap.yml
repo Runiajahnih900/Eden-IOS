@@ -50,6 +50,8 @@ jobs:
             -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
             -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE \
             -DENABLE_IOS_BOOTSTRAP=ON \
+            -DYUZU_USE_BUNDLED_FFMPEG=ON \
+            -DYUZU_USE_EXTERNAL_FFMPEG=OFF \
             -DENABLE_QT=OFF \
             -DYUZU_CMD=OFF \
             -DYUZU_ROOM=OFF \
@@ -139,6 +141,8 @@ jobs:
             -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
             -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE \
             -DENABLE_IOS_BOOTSTRAP=ON \
+            -DYUZU_USE_BUNDLED_FFMPEG=ON \
+            -DYUZU_USE_EXTERNAL_FFMPEG=OFF \
             -DENABLE_QT=OFF \
             -DYUZU_CMD=OFF \
             -DYUZU_ROOM=OFF \
