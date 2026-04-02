@@ -561,3 +561,15 @@ File: `externals/CMakeLists.txt`
   - `HTTPLIB_REQUIRE_OPENSSL OFF`
   - `HTTPLIB_USE_OPENSSL_IF_AVAILABLE OFF`
 - This ensures runtime overrides are appended after `cpmfile.json` defaults, so iOS can override the `HTTPLIB_REQUIRE_OPENSSL ON` entry shipped in package metadata.
+
+### 26) Improve CI diagnostics for iOS bootstrap failures
+File: `.github/workflows/ios-bootstrap.yml`
+
+- Enabled verbose configure messages in main configure step:
+  - `-DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE`
+- Added failure-only diagnostics step that prints:
+  - `externals/cpmfile.json` lines related to `httplib/openssl`
+  - filtered `build-ios/CMakeCache.txt` values (`OPENSSL`, `HTTPLIB`, iOS flags)
+  - tail of `CMakeConfigureLog.yaml`, `CMakeOutput.log`, and `CMakeError.log`
+- Added failure replay configure using `--debug-find` into separate directory (`build-ios-debug`) and persisted log file.
+- Added artifact upload step (`ios-bootstrap-diagnostics`) with key configure/debug logs for easier root-cause analysis.

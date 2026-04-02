@@ -46,6 +46,7 @@ jobs:
             -DCMAKE_OSX_SYSROOT=iphonesimulator \
             -DCMAKE_OSX_ARCHITECTURES=arm64 \
             -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
+            -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE \
             -DENABLE_IOS_BOOTSTRAP=ON \
             -DENABLE_QT=OFF \
             -DYUZU_CMD=OFF \
@@ -54,3 +55,75 @@ jobs:
 
       - name: Build iOS bootstrap target
         run: cmake --build build-ios --target yuzu-ios-bootstrap --parallel
+
+      - name: Dump diagnostics on failure
+        if: failure()
+        run: |
+          set +e
+
+          echo "::group::CPM options snapshot"
+          grep -nE "httplib|openssl" externals/cpmfile.json || true
+          echo "::endgroup::"
+
+          echo "::group::CMake cache (filtered)"
+          if [ -f build-ios/CMakeCache.txt ]; then
+            grep -E "OPENSSL|HTTPLIB|PLATFORM_IOS|ENABLE_IOS_BOOTSTRAP|CMAKE_SYSTEM_NAME|CMAKE_OSX" build-ios/CMakeCache.txt || true
+          else
+            echo "build-ios/CMakeCache.txt not found"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::CMakeConfigureLog tail"
+          if [ -f build-ios/CMakeFiles/CMakeConfigureLog.yaml ]; then
+            tail -n 400 build-ios/CMakeFiles/CMakeConfigureLog.yaml || true
+          else
+            echo "build-ios/CMakeFiles/CMakeConfigureLog.yaml not found"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::CMakeOutput.log tail"
+          if [ -f build-ios/CMakeFiles/CMakeOutput.log ]; then
+            tail -n 400 build-ios/CMakeFiles/CMakeOutput.log || true
+          else
+            echo "build-ios/CMakeFiles/CMakeOutput.log not found"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::CMakeError.log tail"
+          if [ -f build-ios/CMakeFiles/CMakeError.log ]; then
+            tail -n 400 build-ios/CMakeFiles/CMakeError.log || true
+          else
+            echo "build-ios/CMakeFiles/CMakeError.log not found"
+          fi
+          echo "::endgroup::"
+
+          echo "::group::Reconfigure with --debug-find"
+          cmake -S . -B build-ios-debug \
+            -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_SYSTEM_NAME=iOS \
+            -DCMAKE_OSX_SYSROOT=iphonesimulator \
+            -DCMAKE_OSX_ARCHITECTURES=arm64 \
+            -DCMAKE_TRY_COMPILE_TARGET_TYPE=STATIC_LIBRARY \
+            -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE \
+            -DENABLE_IOS_BOOTSTRAP=ON \
+            -DENABLE_QT=OFF \
+            -DYUZU_CMD=OFF \
+            -DYUZU_ROOM=OFF \
+            -DYUZU_ROOM_STANDALONE=OFF \
+            --debug-find 2>&1 | tee build-ios-debug/configure-debug-find.log || true
+          echo "::endgroup::"
+
+      - name: Upload diagnostics artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ios-bootstrap-diagnostics
+          if-no-files-found: ignore
+          path: |
+            build-ios/CMakeCache.txt
+            build-ios/CMakeFiles/CMakeConfigureLog.yaml
+            build-ios/CMakeFiles/CMakeOutput.log
+            build-ios/CMakeFiles/CMakeError.log
+            build-ios-debug/CMakeCache.txt
+            build-ios-debug/configure-debug-find.log
