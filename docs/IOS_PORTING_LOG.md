@@ -913,3 +913,16 @@ File:
 - Wrapped OpenSSL includes behind non-iOS preprocessor guard.
 - Added iOS fallback stubs for `EVP_sha256()` and `EVP_Digest(...)` returning deterministic zeroed SHA256 output.
 - Keeps original OpenSSL-backed digest behavior on non-iOS builds.
+
+### 62) Guard NCA loader integrity hashing path from OpenSSL headers on iOS
+File:
+- `src/core/loader/nca.cpp`
+
+- Wrapped OpenSSL includes behind non-iOS preprocessor guard.
+- Added iOS fallback stubs for EVP digest context APIs used by `VerifyIntegrity(...)`:
+  - `EVP_MD_CTX_new/free`
+  - `EVP_DigestInit_ex`
+  - `EVP_DigestUpdate`
+  - `EVP_DigestFinal_ex`
+  - `EVP_sha256`
+- Keeps original OpenSSL-backed NCA integrity hashing behavior on non-iOS builds.

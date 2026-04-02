@@ -4,9 +4,54 @@
 // SPDX-FileCopyrightText: Copyright 2018 yuzu Emulator Project
 // SPDX-License-Identifier: GPL-2.0-or-later
 
+#include <cstring>
 #include <utility>
+#if !defined(YUZU_PLATFORM_IOS)
 #include <openssl/err.h>
 #include <openssl/evp.h>
+#else
+using EVP_MD = void;
+
+struct EVP_MD_CTX {};
+
+static EVP_MD_CTX* EVP_MD_CTX_new() {
+    return new EVP_MD_CTX{};
+}
+
+static void EVP_MD_CTX_free(EVP_MD_CTX* ctx) {
+    delete ctx;
+}
+
+static const EVP_MD* EVP_sha256() {
+    return nullptr;
+}
+
+static int EVP_DigestInit_ex(EVP_MD_CTX* ctx, const EVP_MD* type, void* impl) {
+    (void)ctx;
+    (void)type;
+    (void)impl;
+    return 1;
+}
+
+static int EVP_DigestUpdate(EVP_MD_CTX* ctx, const void* data, size_t count) {
+    (void)ctx;
+    (void)data;
+    (void)count;
+    return 1;
+}
+
+static int EVP_DigestFinal_ex(EVP_MD_CTX* ctx, unsigned char* md, unsigned int* size) {
+    (void)ctx;
+    constexpr unsigned int kSha256Size = 32;
+    if (md != nullptr) {
+        std::memset(md, 0, kSha256Size);
+    }
+    if (size != nullptr) {
+        *size = kSha256Size;
+    }
+    return 1;
+}
+#endif
 
 #include "common/hex_util.h"
 #include "common/scope_exit.h"
