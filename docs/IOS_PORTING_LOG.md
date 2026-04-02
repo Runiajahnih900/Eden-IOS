@@ -905,3 +905,11 @@ Files:
   - non-iOS keeps `amiibo_crypto.cpp` (OpenSSL path)
 - Removed direct OpenSSL header dependency from `amiibo_crypto.h` so it can be included in iOS builds.
 - Added compile-safe iOS fallback implementation for Amiibo crypto entrypoints to unblock iOS bootstrap profile compilation.
+
+### 61) Guard RO service SHA256 hash path from OpenSSL headers on iOS
+File:
+- `src/core/hle/service/ro/ro.cpp`
+
+- Wrapped OpenSSL includes behind non-iOS preprocessor guard.
+- Added iOS fallback stubs for `EVP_sha256()` and `EVP_Digest(...)` returning deterministic zeroed SHA256 output.
+- Keeps original OpenSSL-backed digest behavior on non-iOS builds.
