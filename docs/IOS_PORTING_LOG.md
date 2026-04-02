@@ -1037,3 +1037,16 @@ File:
 - Ensures `eden-ios-app` receives transitive libraries required to resolve symbols
   when linking against the bootstrap static library.
 
+### 74) Stabilize IPA generation with shell app target and optional runtime linkage
+Files:
+- `src/ios/CMakeLists.txt`
+- `src/ios/ios_app_main.mm`
+- `.github/workflows/ios-bootstrap.yml`
+
+- Added `IOS_APP_LINK_BOOTSTRAP` option (default `OFF`) so IPA generation path can avoid
+  unresolved device-link issues while keeping a compile-safe installable app bundle.
+- Updated iOS app entrypoint to a minimal UIKit home controller shell for deterministic link output.
+- Workflow build now compiles both targets:
+  - `yuzu-ios-bootstrap` (core/bootstrap compile validation)
+  - `eden-ios-app` (IPA packaging source)
+

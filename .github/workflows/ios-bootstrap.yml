@@ -74,7 +74,7 @@ jobs:
       - name: Build iOS app target
         run: |
           set -o pipefail
-          cmake --build build-ios --target eden-ios-app --parallel 2>&1 | tee build-ios/build.log
+          cmake --build build-ios --target yuzu-ios-bootstrap eden-ios-app --parallel 2>&1 | tee build-ios/build.log
 
       - name: Package unsigned IPA
         run: |

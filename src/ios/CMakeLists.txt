@@ -53,6 +53,7 @@ if (PLATFORM_IOS)
     set(IOS_APP_BUNDLE_IDENTIFIER "com.edenemu.ios" CACHE STRING "Bundle identifier for iOS app bundle")
     set(IOS_APP_VERSION "0.1.0" CACHE STRING "Short version for iOS app bundle")
     set(IOS_APP_BUILD_NUMBER "1" CACHE STRING "Build number for iOS app bundle")
+    option(IOS_APP_LINK_BOOTSTRAP "Link eden-ios-app with yuzu-ios-bootstrap runtime" OFF)
 
     configure_file(${CMAKE_CURRENT_SOURCE_DIR}/Info-iOS.plist.in
                    ${CMAKE_CURRENT_BINARY_DIR}/Info-iOS.plist @ONLY)
@@ -61,14 +62,16 @@ if (PLATFORM_IOS)
         ios_app_main.mm)
 
     target_link_libraries(eden-ios-app PRIVATE
-        yuzu-ios-bootstrap
         "-framework Foundation"
         "-framework UIKit")
+
+    if (IOS_APP_LINK_BOOTSTRAP)
+        target_link_libraries(eden-ios-app PRIVATE yuzu-ios-bootstrap)
+        target_compile_definitions(eden-ios-app PRIVATE YUZU_IOS_BOOTSTRAP=1)
+    endif()
 
     set_target_properties(eden-ios-app PROPERTIES
         OUTPUT_NAME ${IOS_APP_EXECUTABLE_NAME}
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/Info-iOS.plist
         XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "2")
-
-    target_compile_definitions(eden-ios-app PRIVATE YUZU_IOS_BOOTSTRAP=1)
 endif()

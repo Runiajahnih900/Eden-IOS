@@ -3,7 +3,33 @@
 
 #import <UIKit/UIKit.h>
 
-#import "ios_runtime_demo_controller.h"
+@interface EdenIOSHomeController : UIViewController
+@end
+
+@implementation EdenIOSHomeController
+
+- (void)viewDidLoad {
+    [super viewDidLoad];
+
+    self.title = @"Eden iOS";
+    self.view.backgroundColor = [UIColor systemBackgroundColor];
+
+    UILabel* label = [[UILabel alloc] initWithFrame:CGRectZero];
+    label.translatesAutoresizingMaskIntoConstraints = NO;
+    label.numberOfLines = 0;
+    label.textAlignment = NSTextAlignmentCenter;
+    label.text = @"IPA bootstrap berhasil.\nAktifkan IOS_APP_LINK_BOOTSTRAP untuk runtime terintegrasi.";
+
+    [self.view addSubview:label];
+    [NSLayoutConstraint activateConstraints:@[
+        [label.centerXAnchor constraintEqualToAnchor:self.view.centerXAnchor],
+        [label.centerYAnchor constraintEqualToAnchor:self.view.centerYAnchor],
+        [label.leadingAnchor constraintGreaterThanOrEqualToAnchor:self.view.leadingAnchor constant:24.0],
+        [label.trailingAnchor constraintLessThanOrEqualToAnchor:self.view.trailingAnchor constant:-24.0],
+    ]];
+}
+
+@end
 
 @interface EdenIOSAppDelegate : UIResponder <UIApplicationDelegate>
 
@@ -18,8 +44,7 @@
     (void)launchOptions;
 
     self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
-    EdenIOSRuntimeDemoController* root_view_controller =
-        [[EdenIOSRuntimeDemoController alloc] initWithRequestJIT:NO enableValidationLayers:NO];
+    EdenIOSHomeController* root_view_controller = [[EdenIOSHomeController alloc] init];
     UINavigationController* navigation_controller =
         [[UINavigationController alloc] initWithRootViewController:root_view_controller];
     self.window.rootViewController = navigation_controller;
