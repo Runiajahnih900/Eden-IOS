@@ -740,3 +740,15 @@ File: `src/common/polyfill_thread.h`
 
 - Added missing standard include for `std::stop_token`.
 - Fixes compile failure where some libc++ configurations do not expose `stop_token` via `<thread>` alone.
+
+### 44) Add portable stop-token wait helper and apply across common sync code
+Files:
+- `src/common/polyfill_thread.h`
+- `src/common/thread.h`
+- `src/common/bounded_threadsafe_queue.h`
+- `src/common/threadsafe_queue.h`
+- `src/common/thread_worker.h`
+
+- Added `Common::WaitWithStopToken(...)` helper that uses native stop-token `wait` overload when available and a timed wait fallback otherwise.
+- Replaced direct `cv.wait(lock, stop_token, predicate)` calls in common synchronization utilities with the helper.
+- Prevents Apple/iOS libc++ builds from failing when the stop-token `wait` overload is not present.

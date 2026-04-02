@@ -118,10 +118,9 @@ private:
         } else if constexpr (Mode == PopMode::WaitWithStopToken) {
             // Wait until the queue is not empty.
             std::unique_lock lock{consumer.cv_mutex};
-            consumer.cv.wait(lock, stop_token, [this, read_index] {
-                return read_index != producer.index.load(std::memory_order::acquire);
-            });
-            if (stop_token.stop_requested()) {
+            if (!WaitWithStopToken(consumer.cv, lock, stop_token, [this, read_index] {
+                    return read_index != producer.index.load(std::memory_order::acquire);
+                })) {
                 return false;
             }
         } else {

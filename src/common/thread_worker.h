@@ -50,9 +50,8 @@ public:
                         if (requests.empty()) {
                             wait_condition.notify_all();
                         }
-                        condition.wait(lock, stop_token,
-                                       [this] { return !requests.empty(); });
-                        if (stop_token.stop_requested()) {
+                        if (!WaitWithStopToken(condition, lock, stop_token,
+                                               [this] { return !requests.empty(); })) {
                             break;
                         }
                         task = std::move(requests.front());

@@ -103,7 +103,9 @@ public:
         if (Empty()) {
             std::unique_lock lock{cv_mutex};
             if constexpr (with_stop_token) {
-                cv.wait(lock, stop_token, [this] { return !Empty(); });
+                if (!WaitWithStopToken(cv, lock, stop_token, [this] { return !Empty(); })) {
+                    return T{};
+                }
             } else {
                 cv.wait(lock, [this] { return !Empty(); });
             }

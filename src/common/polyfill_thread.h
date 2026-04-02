@@ -18,6 +18,23 @@
 
 namespace Common {
 
+template <typename ConditionVariable, typename Lock, typename Predicate>
+bool WaitWithStopToken(ConditionVariable& cv, Lock& lock, std::stop_token token,
+                       Predicate&& pred) {
+    if constexpr (requires { cv.wait(lock, token, std::forward<Predicate>(pred)); }) {
+        cv.wait(lock, token, std::forward<Predicate>(pred));
+        return !token.stop_requested();
+    } else {
+        while (!pred()) {
+            if (token.stop_requested()) {
+                return false;
+            }
+            cv.wait_for(lock, std::chrono::milliseconds{10});
+        }
+        return true;
+    }
+}
+
 template <typename Rep, typename Period>
 bool StoppableTimedWait(std::stop_token token, const std::chrono::duration<Rep, Period>& rel_time) {
     std::condition_variable_any cv;
