@@ -53,6 +53,8 @@ if (ANDROID)
         drivers/android.h)
 
     target_link_libraries(input_common PRIVATE android)
+elseif(PLATFORM_IOS)
+    message(STATUS "input_common: skipping SDL2-based drivers for iOS bootstrap")
 else()
     target_sources(input_common PRIVATE
         drivers/joycon.cpp

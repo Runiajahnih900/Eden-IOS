@@ -631,3 +631,11 @@ File: `.github/workflows/ios-bootstrap.yml`
   - `brew install glslang` (if not already installed)
   - `glslangValidator --version` for verification
 - Resolves configure failure in `src/video_core/host_shaders/CMakeLists.txt` requiring `glslangValidator`.
+
+### 32) Fix SDL2 target error in input_common for iOS bootstrap
+File: `src/input_common/CMakeLists.txt`
+
+- Added iOS branch to skip SDL2-based input drivers during iOS bootstrap configure.
+- Prevents configure failure:
+  - `target_link_libraries(input_common PRIVATE SDL2::SDL2)`
+  - when SDL2 target is intentionally not provided on iOS bootstrap path.
