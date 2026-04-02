@@ -541,3 +541,15 @@ File: `CMakeLists.txt`
   - `Foundation`
 - macOS branch keeps existing framework list (`Carbon`, `Cocoa`, `IOKit`, etc.).
 - This resolves iOS configure failure where CI previously attempted to find `Carbon` on iOS simulator toolchain.
+
+### 24) Fix httplib OpenSSL requirement on iOS CI
+File: `CMakeLists.txt`
+
+- In iOS bootstrap profile, force cpp-httplib OpenSSL options OFF:
+  - `HTTPLIB_USE_OPENSSL_IF_AVAILABLE=OFF`
+  - `HTTPLIB_REQUIRE_OPENSSL=OFF`
+
+File: `externals/CMakeLists.txt`
+
+- Added iOS-specific guard before `AddJsonPackage(httplib)` to force the same options OFF at package injection point.
+- Prevents CMake configure failure in CI where httplib attempted `find_package(OpenSSL)` on iOS simulator builds.

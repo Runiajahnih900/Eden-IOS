@@ -240,6 +240,8 @@ if (PLATFORM_IOS)
     set(YUZU_ROOM_STANDALONE OFF CACHE BOOL "Enable standalone room executable" FORCE)
     set(YUZU_CMD OFF CACHE BOOL "Compile the eden-cli executable" FORCE)
     set(ENABLE_IOS_BOOTSTRAP ON CACHE BOOL "Enable the iOS bootstrap frontend target" FORCE)
+    set(HTTPLIB_USE_OPENSSL_IF_AVAILABLE OFF CACHE BOOL "Allow cpp-httplib to use OpenSSL when available" FORCE)
+    set(HTTPLIB_REQUIRE_OPENSSL OFF CACHE BOOL "Require OpenSSL for cpp-httplib" FORCE)
 
     add_compile_definitions(YUZU_PLATFORM_IOS=1)
 endif()

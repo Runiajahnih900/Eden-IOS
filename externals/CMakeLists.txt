@@ -228,6 +228,10 @@ if (VulkanMemoryAllocator_ADDED)
 endif()
 
 # httplib
+if (PLATFORM_IOS)
+    set(HTTPLIB_USE_OPENSSL_IF_AVAILABLE OFF CACHE BOOL "Allow cpp-httplib to use OpenSSL when available" FORCE)
+    set(HTTPLIB_REQUIRE_OPENSSL OFF CACHE BOOL "Require OpenSSL for cpp-httplib" FORCE)
+endif()
 AddJsonPackage(httplib)
 
 # cpp-jwt
