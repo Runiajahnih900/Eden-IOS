@@ -59,7 +59,7 @@ if (PLATFORM_IOS)
                    ${CMAKE_CURRENT_BINARY_DIR}/Info-iOS.plist @ONLY)
 
     add_executable(eden-ios-app MACOSX_BUNDLE
-        ios_app_main.mm)
+        ios_app_main.m)
 
     target_link_libraries(eden-ios-app PRIVATE
         "-framework Foundation"

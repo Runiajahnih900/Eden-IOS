@@ -1072,3 +1072,12 @@ File:
   - `duplicate symbol`
 - Increased root-cause snippet window to improve first-failure visibility from annotations.
 
+### 77) Migrate IPA app entrypoint from Objective-C++ to Objective-C
+Files:
+- `src/ios/CMakeLists.txt`
+- `src/ios/ios_app_main.m`
+
+- Replaced `.mm` entrypoint source with `.m` Objective-C source for the standalone IPA shell app.
+- Keeps identical UIKit bootstrap behavior while removing ObjC++ link/runtime surface from
+  IPA packaging path.
+
