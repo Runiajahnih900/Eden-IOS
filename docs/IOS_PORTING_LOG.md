@@ -981,3 +981,12 @@ File:
   - `initWithNibName:bundle:`
   - `initWithCoder:`
 - Resolves strict warning-as-error failure for missing override of superclass designated initializer.
+
+### 69) Fix incomplete FileSystemController type in iOS runtime session
+File:
+- `src/ios/ios_runtime_session.cpp`
+
+- Added missing include for full filesystem controller definition:
+  - `core/hle/service/filesystem/filesystem.h`
+- Resolves compile error when calling
+  `g_system->GetFileSystemController().CreateFactories(...)` from iOS runtime load path.
