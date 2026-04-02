@@ -788,3 +788,12 @@ File: `src/video_core/renderer_vulkan/vk_texture_cache.cpp`
 
 - Replaced `VideoCommon::Offset3D(0, 0, 0)` with brace initialization `VideoCommon::Offset3D{0, 0, 0}`.
 - Resolves compiler error on iOS toolchain that rejects parenthesized initialization for this aggregate type.
+
+### 49) Skip dynarmic backend for iOS bootstrap compile profile
+Files:
+- `src/core/CMakeLists.txt`
+- `src/core/arm/exclusive_monitor.cpp`
+
+- Disabled dynarmic source/link block for `PLATFORM_IOS` in `core` target.
+- Guarded dynarmic exclusive monitor include/use in `exclusive_monitor.cpp` out of iOS builds.
+- Prevents bootstrap build failures from missing `dynarmic/interface/*` headers in iOS CI profile.
