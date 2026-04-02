@@ -53,6 +53,10 @@ FOUNDATION_EXPORT NSString* const EdenIOSRuntimeEventReportKey;
 
 + (void)setEventNotificationsEnabled:(BOOL)enabled;
 
++ (void)setRemoteDebugLogEndpoint:(nullable NSString*)endpoint;
+
++ (nullable NSString*)remoteDebugLogEndpoint;
+
 @end
 
 NS_ASSUME_NONNULL_END

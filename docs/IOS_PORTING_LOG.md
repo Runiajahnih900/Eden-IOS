@@ -463,3 +463,39 @@ File: `src/core/CMakeLists.txt`
 - Managed run thread exists, but full lifecycle/perf tuning and gameplay validation are still pending.
 - Thread completion is now tracked, but robust pause/resume and crash-recovery behavior are still pending.
 - iOS bootstrap CI configure blockers for architecture parsing and OpenSSL requirement are now addressed.
+
+### 20) Live remote logging path (iPad -> Windows terminal)
+File: `src/ios/ios_runtime_objc_bridge.h`
+
+- Added Objective-C API to configure remote log endpoint at runtime:
+  - `+setRemoteDebugLogEndpoint:`
+  - `+remoteDebugLogEndpoint`
+
+File: `src/ios/ios_runtime_objc_bridge.mm`
+
+- Added remote runtime log sender via `NSURLSession` POST JSON.
+- Added payload builder with runtime metadata:
+  - `timestamp`
+  - `event`
+  - `running`
+  - `lastStartSucceeded`
+  - `runThreadActive`
+  - `sessionID`
+  - `tickCount`
+  - `report`
+- Runtime event callback now forwards events to NotificationCenter and remote endpoint.
+- Runtime direct calls (`start`, `tick`, `state`, `stop`) now also emit remote debug logs.
+
+File: `src/ios/ios_runtime_demo_controller.mm`
+
+- Added demo UI field for live log endpoint input.
+- Added `Set Live Log` action button to apply endpoint from UI without recompiling wrapper logic.
+
+File: `tools/windows/ios-live-log-server.ps1`
+
+- Added Windows PowerShell live log receiver server using `HttpListener`.
+- Server prints runtime events/report in real-time to terminal for debugging sessions.
+
+File: `docs/IOS_LIVE_DEBUGGING.md`
+
+- Added step-by-step usage guide for live debugging from iPad to VS Code terminal.

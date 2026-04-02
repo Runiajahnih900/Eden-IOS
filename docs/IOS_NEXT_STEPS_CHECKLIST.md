@@ -32,7 +32,8 @@ Checklist ini berisi langkah berikutnya. Item yang sudah dikerjakan diberi cekli
 - [ ] Integrasikan project app iOS nyata (wrapper) untuk menjalankan bridge runtime dari aplikasi.
 - [ ] Sambungkan rendering path nyata (MoltenVK/surface) dari headless ke output layar.
 - [ ] Validasi jalur load game di device iPadOS (jailbreak + TrollStore) dengan 1 game uji.
-- [ ] Tambahkan logging runtime yang lebih detail untuk titik gagal (load, run, stop, thread exit).
+- [x] Tambahkan logging runtime yang lebih detail untuk titik gagal (load, run, stop, thread exit).
+- [x] Aktifkan live log sharing dari iPad ke terminal Windows untuk sesi debug real-time.
 - [ ] Stabilkan lifecycle app (pause/resume/background/foreground) agar sesi emulasi tidak rusak.
 
 ## C. Fitur agar bisa dipakai lebih jauh

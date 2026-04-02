@@ -3,6 +3,7 @@
 
 #import "ios_runtime_demo_controller.h"
 
+#import "ios_runtime_objc_bridge.h"
 #import "ios_runtime_view_model.h"
 
 @interface EdenIOSRuntimeDemoController ()
@@ -10,6 +11,7 @@
 @property(nonatomic, strong) EdenIOSRuntimeViewModel* viewModel;
 @property(nonatomic, strong) UILabel* statusLabel;
 @property(nonatomic, strong) UITextField* gamePathField;
+@property(nonatomic, strong) UITextField* logEndpointField;
 @property(nonatomic, strong) UISwitch* runThreadSwitch;
 
 @end
@@ -45,6 +47,35 @@
     self.gamePathField.placeholder = @"Masukkan path game (.nsp/.xci, dll)";
     self.gamePathField.autocapitalizationType = UITextAutocapitalizationTypeNone;
     self.gamePathField.autocorrectionType = UITextAutocorrectionTypeNo;
+
+    self.logEndpointField = [[UITextField alloc] init];
+    self.logEndpointField.translatesAutoresizingMaskIntoConstraints = NO;
+    self.logEndpointField.borderStyle = UITextBorderStyleRoundedRect;
+    self.logEndpointField.placeholder = @"Live log endpoint (http://IP-PC:8787/log/)";
+    self.logEndpointField.autocapitalizationType = UITextAutocapitalizationTypeNone;
+    self.logEndpointField.autocorrectionType = UITextAutocorrectionTypeNo;
+    self.logEndpointField.keyboardType = UIKeyboardTypeURL;
+
+    NSString* saved_endpoint = [EdenIOSRuntimeBridge remoteDebugLogEndpoint];
+    if (saved_endpoint.length > 0) {
+        self.logEndpointField.text = saved_endpoint;
+    }
+
+    UIButton* setLogEndpointButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    setLogEndpointButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [setLogEndpointButton setTitle:@"Set Live Log" forState:UIControlStateNormal];
+    [setLogEndpointButton addTarget:self
+                             action:@selector(onSetLogEndpointTapped)
+                   forControlEvents:UIControlEventTouchUpInside];
+
+    UIStackView* logEndpointRow = [[UIStackView alloc] initWithArrangedSubviews:@[self.logEndpointField, setLogEndpointButton]];
+    logEndpointRow.translatesAutoresizingMaskIntoConstraints = NO;
+    logEndpointRow.axis = UILayoutConstraintAxisHorizontal;
+    logEndpointRow.spacing = 8.0;
+    logEndpointRow.distribution = UIStackViewDistributionFill;
+
+    [setLogEndpointButton setContentHuggingPriority:UILayoutPriorityRequired
+                                            forAxis:UILayoutConstraintAxisHorizontal];
 
     UILabel* runThreadLabel = [[UILabel alloc] init];
     runThreadLabel.translatesAutoresizingMaskIntoConstraints = NO;
@@ -95,7 +126,7 @@
     buttonRow.spacing = 12.0;
     buttonRow.distribution = UIStackViewDistributionFillEqually;
 
-    UIStackView* stack = [[UIStackView alloc] initWithArrangedSubviews:@[self.gamePathField, runThreadRow, buttonRow, self.statusLabel]];
+    UIStackView* stack = [[UIStackView alloc] initWithArrangedSubviews:@[self.gamePathField, logEndpointRow, runThreadRow, buttonRow, self.statusLabel]];
     stack.translatesAutoresizingMaskIntoConstraints = NO;
     stack.axis = UILayoutConstraintAxisVertical;
     stack.spacing = 16.0;
@@ -117,6 +148,12 @@
 
 - (void)onRunThreadSwitchChanged {
     [self.viewModel setStartExecutionThreadEnabled:self.runThreadSwitch.isOn];
+}
+
+- (void)onSetLogEndpointTapped {
+    NSString* endpoint = [self.logEndpointField.text stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    [EdenIOSRuntimeBridge setRemoteDebugLogEndpoint:endpoint.length > 0 ? endpoint : nil];
+    [self.viewModel refreshState];
 }
 
 - (void)onStopTapped {
