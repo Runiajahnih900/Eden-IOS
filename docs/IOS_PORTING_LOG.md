@@ -1000,3 +1000,31 @@ File:
   - `video_core/gpu.h` for `GPU().Start()`
 - Resolves incomplete-type compile failures after the runtime path progressed past filesystem setup.
 
+### 71) Add concrete iOS app bundle target for installation builds
+Files:
+- `src/ios/CMakeLists.txt`
+- `src/ios/ios_app_main.mm`
+- `src/ios/Info-iOS.plist.in`
+
+- Added new iOS executable bundle target: `eden-ios-app` (`MACOSX_BUNDLE`) linked with
+  `yuzu-ios-bootstrap` and UIKit/Foundation.
+- Added UIKit app entrypoint (`UIApplicationMain`) with app delegate that launches
+  `EdenIOSRuntimeDemoController` as root UI.
+- Added dedicated iOS Info.plist template and CMake cache variables for:
+  - executable name (`IOS_APP_EXECUTABLE_NAME`)
+  - bundle identifier (`IOS_APP_BUNDLE_IDENTIFIER`)
+  - version/build number (`IOS_APP_VERSION`, `IOS_APP_BUILD_NUMBER`)
+
+### 72) Produce downloadable IPA artifact from CI
+File:
+- `.github/workflows/ios-bootstrap.yml`
+
+- Switched iOS configure sysroot from simulator to device (`iphoneos`) for installable package output.
+- Updated build target from `yuzu-ios-bootstrap` to `eden-ios-app`.
+- Added IPA packaging step:
+  - locate `EdenIOS.app`
+  - create `Payload/`
+  - zip as `build-ios/eden-ios-unsigned.ipa`
+- Added artifact upload step `eden-ios-ipa` on successful workflow runs.
+- Kept diagnostics artifact upload and extended it to include generated IPA when present.
+
