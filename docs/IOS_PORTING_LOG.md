@@ -885,3 +885,10 @@ File:
 - Wrapped OpenSSL includes with non-iOS guard.
 - Added iOS fallback digest implementation in `DigestFile(...)` using deterministic rolling hash expansion into `BcatDigest`.
 - Keeps OpenSSL MD5 digest path for non-iOS targets.
+
+### 59) Fix BCAT news unused constant warning under non-OpenSSL HTTP path
+File:
+- `src/core/hle/service/bcat/news/builtin_news.cpp`
+
+- Wrapped `GitHubAPI_EdenReleases` constant with `CPPHTTPLIB_OPENSSL_SUPPORT` guard.
+- Prevents `-Wunused-const-variable` from failing iOS bootstrap builds when HTTPS fetch path is compiled out.

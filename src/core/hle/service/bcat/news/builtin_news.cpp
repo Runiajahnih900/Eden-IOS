@@ -37,7 +37,9 @@
 namespace Service::News {
 namespace {
 
+#ifdef CPPHTTPLIB_OPENSSL_SUPPORT
 constexpr const char* GitHubAPI_EdenReleases = "/repos/eden-emulator/Releases/releases";
+#endif
 
 // Cached logo data
 std::vector<u8> default_logo_small;
