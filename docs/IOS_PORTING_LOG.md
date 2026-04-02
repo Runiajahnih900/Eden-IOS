@@ -639,3 +639,17 @@ File: `src/input_common/CMakeLists.txt`
 - Prevents configure failure:
   - `target_link_libraries(input_common PRIVATE SDL2::SDL2)`
   - when SDL2 target is intentionally not provided on iOS bootstrap path.
+
+### 33) Add build-stage error summary in CI diagnostics
+File: `.github/workflows/ios-bootstrap.yml`
+
+- Build step now captures output to `build-ios/build.log`.
+- Failure diagnostics now include dedicated build error extraction:
+  - `error:`
+  - `fatal error:`
+  - `undefined reference`
+  - `ld: error`
+  - `ninja: build stopped`
+  - `subcommand failed`
+- Added `Build root cause snippet` section in Step Summary for fast triage when configure stage succeeds but build stage fails.
+- Added `build-ios/build.log` to uploaded diagnostics artifact.

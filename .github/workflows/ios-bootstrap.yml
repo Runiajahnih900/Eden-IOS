@@ -64,7 +64,9 @@ jobs:
             2>&1 | tee build-ios/configure.log
 
       - name: Build iOS bootstrap target
-        run: cmake --build build-ios --target yuzu-ios-bootstrap --parallel
+        run: |
+          set -o pipefail
+          cmake --build build-ios --target yuzu-ios-bootstrap --parallel 2>&1 | tee build-ios/build.log
 
       - name: Dump diagnostics on failure
         if: failure()
@@ -135,6 +137,29 @@ jobs:
           fi
           echo "::endgroup::"
 
+          echo "::group::Build hard errors (short)"
+          if [ -f build-ios/build.log ]; then
+            grep -nEi "error:|fatal error:|undefined reference|ld: error|ninja: build stopped|subcommand failed" build-ios/build.log | tail -n 120 || true
+            {
+              echo "### Build hard errors"
+              echo '```text'
+              grep -nEi "error:|fatal error:|undefined reference|ld: error|ninja: build stopped|subcommand failed" build-ios/build.log | tail -n 120 || true
+              echo '```'
+              echo
+              echo "### Build root cause snippet"
+              echo '```text'
+              awk '
+                /fatal error:|error:|undefined reference|ld: error/ {capture=1;left=16}
+                capture && left>0 {print; left--; if (left==0) capture=0}
+              ' build-ios/build.log | head -n 140 || true
+              echo '```'
+              echo
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "build-ios/build.log not found"
+          fi
+          echo "::endgroup::"
+
           echo "::group::Reconfigure with --debug-find"
           mkdir -p build-ios-debug
           cmake -S . -B build-ios-debug \
@@ -170,6 +195,7 @@ jobs:
           path: |
             build-ios/CMakeCache.txt
             build-ios/configure.log
+            build-ios/build.log
             build-ios/CMakeFiles/CMakeConfigureLog.yaml
             build-ios/CMakeFiles/CMakeOutput.log
             build-ios/CMakeFiles/CMakeError.log
