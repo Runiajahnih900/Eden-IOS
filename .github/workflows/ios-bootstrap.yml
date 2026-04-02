@@ -37,6 +37,11 @@ jobs:
           xcodebuild -version
           clang --version
 
+      - name: Install glslangValidator
+        run: |
+          brew list glslang >/dev/null 2>&1 || brew install glslang
+          glslangValidator --version
+
       - name: Configure iOS bootstrap (simulator)
         run: |
           mkdir -p build-ios

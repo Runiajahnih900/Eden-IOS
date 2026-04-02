@@ -623,3 +623,11 @@ File: `.github/workflows/ios-bootstrap.yml`
   - `-DYUZU_USE_BUNDLED_FFMPEG=ON`
   - `-DYUZU_USE_EXTERNAL_FFMPEG=OFF`
 - Keeps CI behavior aligned with iOS bootstrap profile regardless of cache or option order.
+
+### 31) Ensure glslangValidator is available in iOS CI runner
+File: `.github/workflows/ios-bootstrap.yml`
+
+- Added explicit dependency install step before configure:
+  - `brew install glslang` (if not already installed)
+  - `glslangValidator --version` for verification
+- Resolves configure failure in `src/video_core/host_shaders/CMakeLists.txt` requiring `glslangValidator`.
