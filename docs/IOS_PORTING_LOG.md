@@ -680,3 +680,10 @@ File: `.github/workflows/ios-bootstrap.yml`
 
 - Added explicit `-DBOOST_CONTEXT_*` flags to configure and debug-find commands.
 - Extended cache summary filter to include `BOOST_CONTEXT*` and `CMAKE_SYSTEM_PROCESSOR` for verification in CI summary.
+
+### 36) Fix IOKit header include on iOS simulator build
+File: `src/common/device_power_state.cpp`
+
+- Corrected Apple platform guards from `TARGET_OS_MAC` to `TARGET_OS_OSX`.
+- `TARGET_OS_MAC` is true on non-macOS Apple targets as well, which caused iOS simulator builds to include macOS-only IOKit power headers.
+- `IOKit/ps/IOPSKeys.h` and `IOPowerSources.h` are now included only for macOS builds, avoiding iOS compile failure.
