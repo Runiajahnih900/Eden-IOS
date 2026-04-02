@@ -513,3 +513,19 @@ File: `docs/IOS_LIVE_DEBUGGING.md`
 
 - Updated instructions for Tailscale-based setup (`komputer-kerja` endpoint for `muhammads-ipad`).
 - Clarified that the latest script no longer uses `-HostToken` parameter.
+
+### 22) Extra hardening for iOS CI configure stability
+File: `externals/cmake-modules/DetectArchitecture.cmake`
+
+- Simplified Apple architecture iteration to `foreach(ARCH ${CMAKE_OSX_ARCHITECTURES})`.
+- Prevents parser-variant issues that can still surface as `Unknown arguments: arm64` in some CI contexts.
+
+File: `CMakeLists.txt`
+
+- OpenSSL discovery is now skipped for all iOS builds (`if (NOT PLATFORM_IOS)`), not only bootstrap-gated branches.
+- Reduces dependency on cache-state/order for `ENABLE_IOS_BOOTSTRAP` during configure phase.
+
+File: `src/core/CMakeLists.txt`
+
+- iOS path now always uses `ssl_backend_none.cpp` and never links `OpenSSL::SSL/OpenSSL::Crypto`.
+- Non-iOS behavior remains unchanged with OpenSSL backend.

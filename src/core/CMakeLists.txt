@@ -1266,7 +1266,7 @@ if (ARCHITECTURE_x86_64 OR ARCHITECTURE_arm64)
     target_link_libraries(core PRIVATE dynarmic::dynarmic)
 endif()
 
-if (PLATFORM_IOS AND ENABLE_IOS_BOOTSTRAP)
+if (PLATFORM_IOS)
     target_sources(core PRIVATE hle/service/ssl/ssl_backend_none.cpp)
 else()
     target_sources(core PRIVATE hle/service/ssl/ssl_backend_openssl.cpp)
