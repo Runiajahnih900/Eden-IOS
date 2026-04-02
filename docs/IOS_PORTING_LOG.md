@@ -693,3 +693,16 @@ File: `src/common/device_power_state.cpp`
 
 - Added `!defined(YUZU_PLATFORM_IOS)` guard to Apple IOKit include and macOS runtime branch.
 - Ensures iOS bootstrap builds cannot enter macOS-only power source code path even if Apple target macros behave unexpectedly in simulator contexts.
+
+### 38) Make power-state source selection explicit for iOS target
+File: `src/common/CMakeLists.txt`
+
+- Removed unconditional `device_power_state.cpp` from common source list.
+- Added conditional source selection:
+  - iOS uses `device_power_state_ios.cpp`
+  - non-iOS uses existing `device_power_state.cpp`
+- Prevents any accidental compilation of macOS-only IOKit source on iOS toolchains.
+
+File: `src/common/device_power_state_ios.cpp`
+
+- Added iOS-safe stub implementation of `Common::GetPowerStatus()` for bootstrap builds.

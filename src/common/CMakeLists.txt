@@ -42,7 +42,6 @@ add_library(
     demangle.h
     detached_tasks.cpp
     detached_tasks.h
-    device_power_state.cpp
     device_power_state.h
     div_ceil.h
     dynamic_library.cpp
@@ -147,6 +146,12 @@ add_library(
     zstd_compression.h
     fs/ryujinx_compat.h fs/ryujinx_compat.cpp
     fs/symlink.h fs/symlink.cpp)
+
+if(PLATFORM_IOS)
+    target_sources(common PRIVATE device_power_state_ios.cpp)
+else()
+    target_sources(common PRIVATE device_power_state.cpp)
+endif()
 
 if(WIN32)
     target_sources(common PRIVATE windows/timer_resolution.cpp
