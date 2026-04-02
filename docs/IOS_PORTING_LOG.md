@@ -831,3 +831,13 @@ Files:
   - iOS uses `debugger/debugger_ios.cpp` (no-op debugger backend)
   - non-iOS keeps full debugger stack (`debugger.cpp`, `gdbstub.cpp`, `gdbstub_arch.cpp`)
 - Avoids iOS build failure from missing Boost.Process headers (`boost/process/v1/async_pipe.hpp`) while preserving full debugger behavior on non-iOS targets.
+
+### 53) Add iOS SHA256 fallback stubs in registered cache (no OpenSSL headers)
+File:
+- `src/core/file_sys/registered_cache.cpp`
+
+- Wrapped OpenSSL include behind non-iOS guard.
+- Added iOS-local fallback stubs for:
+  - `EVP_sha256()`
+  - `EVP_Digest(...)`
+- Fallback returns deterministic zeroed SHA256 output for bootstrap profile, unblocking compile when OpenSSL headers are unavailable on iOS CI.

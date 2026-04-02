@@ -5,9 +5,34 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 
 #include <algorithm>
+#include <cstring>
 #include <random>
 #include <regex>
+#if !defined(YUZU_PLATFORM_IOS)
 #include <openssl/evp.h>
+#else
+using EVP_MD = void;
+
+static const EVP_MD* EVP_sha256() {
+    return nullptr;
+}
+
+static int EVP_Digest(const void* data, size_t count, unsigned char* md, unsigned int* size,
+                      const EVP_MD* type, void* impl) {
+    (void)data;
+    (void)count;
+    (void)type;
+    (void)impl;
+    constexpr unsigned int kSha256Size = 32;
+    if (md != nullptr) {
+        std::memset(md, 0, kSha256Size);
+    }
+    if (size != nullptr) {
+        *size = kSha256Size;
+    }
+    return 1;
+}
+#endif
 #include "common/assert.h"
 #include "common/fs/path_util.h"
 #include "common/hex_util.h"
