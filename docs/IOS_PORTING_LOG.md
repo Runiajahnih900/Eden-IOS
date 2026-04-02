@@ -499,3 +499,17 @@ File: `tools/windows/ios-live-log-server.ps1`
 File: `docs/IOS_LIVE_DEBUGGING.md`
 
 - Added step-by-step usage guide for live debugging from iPad to VS Code terminal.
+
+### 21) Live log server no-admin mode and multi-source validation
+File: `tools/windows/ios-live-log-server.ps1`
+
+- Reworked receiver implementation from `HttpListener` to `TcpListener`.
+- Removed dependency on URL ACL reservation and elevated admin startup for standard use.
+- Added lightweight HTTP parsing and explicit JSON response writer.
+- Fixed POST body parsing to avoid request hangs during `Invoke-RestMethod` tests.
+- Confirmed ingest of multiple log payloads in one session (simulated iPad + komputer source).
+
+File: `docs/IOS_LIVE_DEBUGGING.md`
+
+- Updated instructions for Tailscale-based setup (`komputer-kerja` endpoint for `muhammads-ipad`).
+- Clarified that the latest script no longer uses `-HostToken` parameter.

@@ -1,8 +1,8 @@
-# iOS Live Debugging (iPad -> VS Code Terminal)
+# iOS Live Debugging (iPad + Komputer Kerja -> VS Code Terminal)
 
 Date: 2026-04-02
 
-Dokumen ini untuk menampilkan log runtime dari iPad secara live ke terminal workspace ini.
+Dokumen ini untuk menampilkan log runtime dari iPad dan komputer kerja secara live ke terminal workspace ini.
 
 ## 1) Jalankan server log di Windows
 
@@ -12,28 +12,25 @@ Dari root repo jalankan:
 powershell -ExecutionPolicy Bypass -File tools/windows/ios-live-log-server.ps1 -Port 8787 -Path /log/
 ```
 
-Jika muncul error "Access is denied", jalankan PowerShell as Administrator lalu:
+Catatan:
+- Script terbaru tidak memakai parameter `-HostToken`.
+- Script terbaru tidak butuh URL ACL admin untuk start.
 
-```powershell
-netsh http add urlacl url=http://+:8787/log/ user=$env:USERNAME
-```
+## 2) Pastikan iPad dan komputer kerja terhubung Tailscale
 
-Setelah itu jalankan ulang server.
-
-## 2) Pastikan iPad dan laptop satu jaringan
-
-- iPad dan laptop harus berada pada LAN/Wi-Fi yang sama.
-- Ambil IP laptop (contoh `192.168.1.10`).
+- Pastikan perangkat `komputer-kerja` dan `muhammads-ipad` statusnya `Connected` di Tailscale.
+- Gunakan IP Tailscale komputer kerja sebagai endpoint log.
+- Contoh dari daftar perangkat saat ini: `100.104.116.72` (komputer-kerja).
 
 ## 3) Set endpoint log dari sisi iOS
 
-Endpoint contoh:
+Endpoint contoh untuk iPad:
 
 ```text
-http://192.168.1.10:8787/log/
+http://100.104.116.72:8787/log/
 ```
 
-Pilihan cara set endpoint:
+Pilihan cara set endpoint dari app iOS:
 
 - Via demo UI: isi field `Live log endpoint` lalu tekan `Set Live Log`.
 - Via kode wrapper:
@@ -43,13 +40,14 @@ Pilihan cara set endpoint:
 [EdenIOSRuntimeBridge setEventNotificationsEnabled:YES];
 ```
 
-## 4) Mulai runtime dan lihat log live
+## 4) Log dari iPad dan komputer kerja dalam satu terminal
 
 Saat `Start`, `Tick`, `Stop`, atau event runtime lain terjadi, terminal Windows akan menampilkan baris log real-time beserta report.
+Server menerima banyak source sekaligus, jadi log iPad dan komputer kerja bisa tampil bersamaan.
 
 ## 5) Uji cepat koneksi (opsional)
 
-Sebelum tes dari iPad, kirim payload contoh dari laptop:
+Sebelum tes dari iPad, kirim payload contoh dari komputer kerja:
 
 ```powershell
 Invoke-RestMethod -Method Post -Uri http://127.0.0.1:8787/log/ -ContentType "application/json" -Body '{"event":"ping","sessionID":1,"tickCount":0,"running":false,"report":"hello"}'
