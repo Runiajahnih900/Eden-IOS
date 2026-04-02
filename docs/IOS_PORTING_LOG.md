@@ -1050,3 +1050,12 @@ Files:
   - `yuzu-ios-bootstrap` (core/bootstrap compile validation)
   - `eden-ios-app` (IPA packaging source)
 
+### 75) Prioritize IPA artifact success path in CI
+File:
+- `.github/workflows/ios-bootstrap.yml`
+
+- Set `-DIOS_APP_LINK_BOOTSTRAP=OFF` explicitly in configure and debug-replay commands.
+- Reduced build target set to `eden-ios-app` only for the IPA workflow path.
+- Purpose: ensure deterministic `.ipa` artifact production for iPad installation flow
+  while runtime-heavy linkage is reintroduced later behind explicit enable flag.
+
