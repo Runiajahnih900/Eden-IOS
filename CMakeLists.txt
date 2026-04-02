@@ -242,6 +242,12 @@ if (PLATFORM_IOS)
     set(ENABLE_IOS_BOOTSTRAP ON CACHE BOOL "Enable the iOS bootstrap frontend target" FORCE)
     set(YUZU_USE_BUNDLED_FFMPEG ON CACHE BOOL "Download bundled FFmpeg" FORCE)
     set(YUZU_USE_EXTERNAL_FFMPEG OFF CACHE BOOL "Build FFmpeg from external source" FORCE)
+    # Boost.Context auto-detection may pick host arch/ABI in cross builds; force iOS arm64 tuple.
+    set(BOOST_CONTEXT_ARCHITECTURE arm64 CACHE STRING "Boost.Context architecture" FORCE)
+    set(BOOST_CONTEXT_ABI aapcs CACHE STRING "Boost.Context ABI" FORCE)
+    set(BOOST_CONTEXT_BINARY_FORMAT macho CACHE STRING "Boost.Context binary format" FORCE)
+    set(BOOST_CONTEXT_ASSEMBLER gas CACHE STRING "Boost.Context assembler" FORCE)
+    set(BOOST_CONTEXT_ASM_SUFFIX .S CACHE STRING "Boost.Context assembler source suffix" FORCE)
     set(HTTPLIB_USE_OPENSSL_IF_AVAILABLE OFF CACHE BOOL "Allow cpp-httplib to use OpenSSL when available" FORCE)
     set(HTTPLIB_REQUIRE_OPENSSL OFF CACHE BOOL "Require OpenSSL for cpp-httplib" FORCE)
 
