@@ -841,3 +841,14 @@ File:
   - `EVP_sha256()`
   - `EVP_Digest(...)`
 - Fallback returns deterministic zeroed SHA256 output for bootstrap profile, unblocking compile when OpenSSL headers are unavailable on iOS CI.
+
+### 54) Add iOS OpenSSL-free fallbacks in XTS archive path
+File:
+- `src/core/file_sys/xts_archive.cpp`
+
+- Wrapped OpenSSL includes behind non-iOS guard.
+- Added iOS-local SHA256 fallback stubs:
+  - `EVP_sha256()`
+  - `EVP_Digest(...)`
+- Added iOS fallback for `CalculateHMAC256(...)` to return deterministic zeroed output for bootstrap compile profile.
+- Keeps existing OpenSSL-based HMAC/SHA256 behavior on non-iOS builds.

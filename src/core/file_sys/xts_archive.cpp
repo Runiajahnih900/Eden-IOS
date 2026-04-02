@@ -9,8 +9,32 @@
 #include <regex>
 #include <string>
 
+#if !defined(YUZU_PLATFORM_IOS)
 #include <openssl/err.h>
 #include <openssl/evp.h>
+#else
+using EVP_MD = void;
+
+static const EVP_MD* EVP_sha256() {
+    return nullptr;
+}
+
+static int EVP_Digest(const void* data, size_t count, unsigned char* md, unsigned int* size,
+                      const EVP_MD* type, void* impl) {
+    (void)data;
+    (void)count;
+    (void)type;
+    (void)impl;
+    constexpr unsigned int kSha256Size = 32;
+    if (md != nullptr) {
+        std::memset(md, 0, kSha256Size);
+    }
+    if (size != nullptr) {
+        *size = kSha256Size;
+    }
+    return 1;
+}
+#endif
 
 #include "common/fs/path_util.h"
 #include "common/hex_util.h"
@@ -30,6 +54,14 @@ constexpr u64 NAX_HEADER_PADDING_SIZE = 0x4000;
 template <typename SourceData, typename SourceKey, typename Destination>
 static bool CalculateHMAC256(Destination* out, const SourceKey* key, std::size_t key_length,
                              const SourceData* data, std::size_t data_length) {
+#if defined(YUZU_PLATFORM_IOS)
+    (void)key;
+    (void)key_length;
+    (void)data;
+    (void)data_length;
+    std::memset(out, 0, 32);
+    return true;
+#else
     size_t out_len = 0;
 
     static EVP_MAC* mac = EVP_MAC_fetch(nullptr, "HMAC", nullptr);
@@ -48,6 +80,7 @@ static bool CalculateHMAC256(Destination* out, const SourceKey* key, std::size_t
 
     return EVP_MAC_update(ctx, reinterpret_cast<const unsigned char*>(data), data_length) &&
            EVP_MAC_final(ctx, reinterpret_cast<unsigned char*>(out), &out_len, 32);
+#endif
 }
 
 NAX::NAX(VirtualFile file_)
