@@ -706,3 +706,10 @@ File: `src/common/CMakeLists.txt`
 File: `src/common/device_power_state_ios.cpp`
 
 - Added iOS-safe stub implementation of `Common::GetPowerStatus()` for bootstrap builds.
+
+### 39) Add header-availability fallback for Apple IOKit power includes
+File: `src/common/device_power_state.cpp`
+
+- Wrapped IOKit includes behind `__has_include` checks and compile-time flag `EDEN_HAS_APPLE_IOKIT_POWER`.
+- Apple power-source branch now compiles only when the required headers are actually available.
+- Prevents fatal include errors on iOS simulator SDKs even if macOS power-state source is selected unexpectedly.
