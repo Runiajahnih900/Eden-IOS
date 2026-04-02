@@ -412,6 +412,27 @@ File: `src/ios/ios_runtime_view_model.mm`
 
 - Cleaned up event handling formatting for `runThreadActive` propagation.
 
+### 19) CI configure blockers fix (iOS simulator)
+File: `externals/cmake-modules/DetectArchitecture.cmake`
+
+- Fixed multi-arch iteration syntax for Apple architectures:
+  - changed `foreach(ARCH IN ${CMAKE_OSX_ARCHITECTURES})`
+  - to `foreach(ARCH IN LISTS CMAKE_OSX_ARCHITECTURES)`
+- This resolves CMake parse failure on iOS configure (`Unknown arguments: arm64`).
+
+File: `CMakeLists.txt`
+
+- Made OpenSSL discovery optional for iOS bootstrap profile only:
+  - skip bundled OpenSSL setup and `find_package(OpenSSL 3 REQUIRED)` when `PLATFORM_IOS AND ENABLE_IOS_BOOTSTRAP`.
+  - add status message for traceability during configure.
+
+File: `src/core/CMakeLists.txt`
+
+- Removed unconditional OpenSSL dependency for core in iOS bootstrap profile:
+  - iOS bootstrap now uses `hle/service/ssl/ssl_backend_none.cpp`.
+  - non-iOS-bootstrap builds keep existing OpenSSL backend and compile definitions.
+- This prevents missing imported target/link failures when OpenSSL is intentionally skipped in bootstrap CI.
+
 ## Current Result
 
 - iOS bootstrap build profile exists.
@@ -441,3 +462,4 @@ File: `src/ios/ios_runtime_view_model.mm`
 - `Core::System::Load` is now attempted headless; long-running run loop integration is still pending.
 - Managed run thread exists, but full lifecycle/perf tuning and gameplay validation are still pending.
 - Thread completion is now tracked, but robust pause/resume and crash-recovery behavior are still pending.
+- iOS bootstrap CI configure blockers for architecture parsing and OpenSSL requirement are now addressed.

@@ -382,15 +382,19 @@ find_package(Threads REQUIRED)
 find_package(RenderDoc MODULE)
 
 # openssl funniness
-if (YUZU_USE_BUNDLED_OPENSSL)
-    set(BUILD_SHARED_LIBS OFF)
-    AddJsonPackage(openssl)
-    if (OpenSSL_ADDED)
-        add_compile_definitions(YUZU_BUNDLED_OPENSSL)
+if (NOT (PLATFORM_IOS AND ENABLE_IOS_BOOTSTRAP))
+    if (YUZU_USE_BUNDLED_OPENSSL)
+        set(BUILD_SHARED_LIBS OFF)
+        AddJsonPackage(openssl)
+        if (OpenSSL_ADDED)
+            add_compile_definitions(YUZU_BUNDLED_OPENSSL)
+        endif()
     endif()
-endif()
 
-find_package(OpenSSL 3 REQUIRED)
+    find_package(OpenSSL 3 REQUIRED)
+else()
+    message(STATUS "Skipping OpenSSL discovery for iOS bootstrap profile")
+endif()
 
 message(STATUS "Fetching needed dependencies with CPM")
 

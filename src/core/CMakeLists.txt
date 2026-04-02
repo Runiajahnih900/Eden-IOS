@@ -1266,10 +1266,13 @@ if (ARCHITECTURE_x86_64 OR ARCHITECTURE_arm64)
     target_link_libraries(core PRIVATE dynarmic::dynarmic)
 endif()
 
-target_sources(core PRIVATE hle/service/ssl/ssl_backend_openssl.cpp)
-
-target_link_libraries(core PRIVATE OpenSSL::SSL OpenSSL::Crypto)
-target_compile_definitions(core PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
+if (PLATFORM_IOS AND ENABLE_IOS_BOOTSTRAP)
+    target_sources(core PRIVATE hle/service/ssl/ssl_backend_none.cpp)
+else()
+    target_sources(core PRIVATE hle/service/ssl/ssl_backend_openssl.cpp)
+    target_link_libraries(core PRIVATE OpenSSL::SSL OpenSSL::Crypto)
+    target_compile_definitions(core PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
+endif()
 
 # TODO
 
