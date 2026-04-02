@@ -529,3 +529,15 @@ File: `src/core/CMakeLists.txt`
 
 - iOS path now always uses `ssl_backend_none.cpp` and never links `OpenSSL::SSL/OpenSSL::Crypto`.
 - Non-iOS behavior remains unchanged with OpenSSL backend.
+
+### 23) Fix Apple framework selection for iOS CI
+File: `CMakeLists.txt`
+
+- Split APPLE platform framework lookup into macOS and iOS branches.
+- iOS branch now searches only iOS-available frameworks:
+  - `Metal`
+  - `CoreVideo`
+  - `CoreMedia`
+  - `Foundation`
+- macOS branch keeps existing framework list (`Carbon`, `Cocoa`, `IOKit`, etc.).
+- This resolves iOS configure failure where CI previously attempted to find `Carbon` on iOS simulator toolchain.
