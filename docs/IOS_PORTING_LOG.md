@@ -943,3 +943,12 @@ File:
   `condition_variable_any::wait_for(lock, stop_token, duration, predicate)`.
 - Fallback uses short-slice `wait_for(lock, duration)` polling until timeout or stop request.
 - Keeps existing native stop-token timed-wait path when available.
+
+### 65) Fix duration-type mismatch in fallback timed wait slice logic
+File:
+- `src/common/polyfill_thread.h`
+
+- Replaced `std::min(remaining, 10ms)` in fallback path with explicit
+  `duration_cast` and manual comparison.
+- Avoids libc++ template deduction failure (`no matching function for call to 'min'`) when
+  `remaining` and `milliseconds` have different duration types.

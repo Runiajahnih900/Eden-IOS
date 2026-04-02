@@ -10,7 +10,6 @@
 
 #pragma once
 
-#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <condition_variable>
@@ -123,7 +122,9 @@ bool StoppableTimedWait(std::stop_token token, const std::chrono::duration<Rep, 
                 return true;
             }
             const auto remaining = deadline - now;
-            const auto sleep_slice = (std::min)(remaining, std::chrono::milliseconds{10});
+            const auto max_slice =
+                std::chrono::duration_cast<decltype(remaining)>(std::chrono::milliseconds{10});
+            const auto sleep_slice = remaining < max_slice ? remaining : max_slice;
             cv.wait_for(lk, sleep_slice);
         }
         return false;
