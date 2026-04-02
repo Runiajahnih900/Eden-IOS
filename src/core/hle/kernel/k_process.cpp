@@ -7,8 +7,10 @@
 #include <random>
 #include "common/scope_exit.h"
 #include "common/settings.h"
+#if !defined(YUZU_PLATFORM_IOS)
 #include "core/arm/dynarmic/arm_dynarmic.h"
 #include "core/arm/dynarmic/dynarmic_exclusive_monitor.h"
+#endif
 #include "core/core.h"
 #include "core/hle/kernel/k_process.h"
 #include "core/hle/kernel/k_scoped_resource_reservation.h"
@@ -18,8 +20,10 @@
 #include "core/hle/kernel/k_thread_queue.h"
 #include "core/hle/kernel/k_worker_task_manager.h"
 
+#if !defined(YUZU_PLATFORM_IOS)
 #include "core/arm/dynarmic/arm_dynarmic_32.h"
 #include "core/arm/dynarmic/arm_dynarmic_64.h"
+#endif
 #ifdef HAS_NCE
 #include "core/arm/nce/arm_nce.h"
 #endif
@@ -1282,6 +1286,14 @@ void KProcess::LoadModule(CodeSet code_set, KProcessAddress base_addr) {
 void KProcess::InitializeInterfaces() {
     m_exclusive_monitor =
         Core::MakeExclusiveMonitor(this->GetMemory(), Core::Hardware::NUM_CPU_CORES);
+
+#if defined(YUZU_PLATFORM_IOS)
+    // iOS bootstrap compile profile runs without dynarmic backend.
+    for (size_t i = 0; i < Core::Hardware::NUM_CPU_CORES; i++) {
+        m_arm_interfaces[i].reset();
+    }
+    return;
+#endif
 
 #ifdef HAS_NCE
     if (this->IsApplication() && Settings::IsNceEnabled()) {

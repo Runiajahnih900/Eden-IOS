@@ -852,3 +852,14 @@ File:
   - `EVP_Digest(...)`
 - Added iOS fallback for `CalculateHMAC256(...)` to return deterministic zeroed output for bootstrap compile profile.
 - Keeps existing OpenSSL-based HMAC/SHA256 behavior on non-iOS builds.
+
+### 55) Guard process dynarmic wiring out of iOS bootstrap profile
+File:
+- `src/core/hle/kernel/k_process.cpp`
+
+- Wrapped dynarmic header includes in non-iOS guards.
+- Added early iOS path in `KProcess::InitializeInterfaces()`:
+  - initializes exclusive monitor pointer as before
+  - skips dynarmic backend construction
+  - resets CPU interface slots to null in bootstrap compile profile
+- Prevents iOS build from pulling dynarmic headers like `dynarmic/interface/halt_reason.h` that are absent in CI profile.
