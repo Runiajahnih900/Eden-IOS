@@ -61,6 +61,13 @@ jobs:
         run: |
           set +e
 
+          {
+            echo "## iOS Bootstrap Failure Summary"
+            echo
+            echo "Ringkasan singkat error (detail lengkap ada di artifact ios-bootstrap-diagnostics)."
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
+
           echo "::group::CPM options snapshot"
           grep -nE "httplib|openssl" externals/cpmfile.json || true
           echo "::endgroup::"
@@ -68,36 +75,50 @@ jobs:
           echo "::group::CMake cache (filtered)"
           if [ -f build-ios/CMakeCache.txt ]; then
             grep -E "OPENSSL|HTTPLIB|PLATFORM_IOS|ENABLE_IOS_BOOTSTRAP|CMAKE_SYSTEM_NAME|CMAKE_OSX" build-ios/CMakeCache.txt || true
+            {
+              echo "### Cache filter"
+              echo '```text'
+              grep -E "OPENSSL|HTTPLIB|PLATFORM_IOS|ENABLE_IOS_BOOTSTRAP|CMAKE_SYSTEM_NAME|CMAKE_OSX" build-ios/CMakeCache.txt | head -n 60 || true
+              echo '```'
+              echo
+            } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "build-ios/CMakeCache.txt not found"
           fi
           echo "::endgroup::"
 
-          echo "::group::CMakeConfigureLog tail"
-          if [ -f build-ios/CMakeFiles/CMakeConfigureLog.yaml ]; then
-            tail -n 400 build-ios/CMakeFiles/CMakeConfigureLog.yaml || true
-          else
-            echo "build-ios/CMakeFiles/CMakeConfigureLog.yaml not found"
-          fi
-          echo "::endgroup::"
-
-          echo "::group::CMakeOutput.log tail"
-          if [ -f build-ios/CMakeFiles/CMakeOutput.log ]; then
-            tail -n 400 build-ios/CMakeFiles/CMakeOutput.log || true
-          else
-            echo "build-ios/CMakeFiles/CMakeOutput.log not found"
-          fi
-          echo "::endgroup::"
-
           echo "::group::CMakeError.log tail"
           if [ -f build-ios/CMakeFiles/CMakeError.log ]; then
-            tail -n 400 build-ios/CMakeFiles/CMakeError.log || true
+            tail -n 120 build-ios/CMakeFiles/CMakeError.log || true
+            {
+              echo "### CMakeError.log tail"
+              echo '```text'
+              tail -n 120 build-ios/CMakeFiles/CMakeError.log || true
+              echo '```'
+              echo
+            } >> "$GITHUB_STEP_SUMMARY"
           else
             echo "build-ios/CMakeFiles/CMakeError.log not found"
           fi
           echo "::endgroup::"
 
+          echo "::group::Detected error lines (short)"
+          if [ -f build-ios/CMakeFiles/CMakeConfigureLog.yaml ]; then
+            grep -nEi "cmake error|could not find|fatal|failed|openssl|httplib|carbon" build-ios/CMakeFiles/CMakeConfigureLog.yaml | tail -n 80 || true
+            {
+              echo "### ConfigureLog matched errors"
+              echo '```text'
+              grep -nEi "cmake error|could not find|fatal|failed|openssl|httplib|carbon" build-ios/CMakeFiles/CMakeConfigureLog.yaml | tail -n 80 || true
+              echo '```'
+              echo
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "build-ios/CMakeFiles/CMakeConfigureLog.yaml not found"
+          fi
+          echo "::endgroup::"
+
           echo "::group::Reconfigure with --debug-find"
+          mkdir -p build-ios-debug
           cmake -S . -B build-ios-debug \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
@@ -111,7 +132,13 @@ jobs:
             -DYUZU_CMD=OFF \
             -DYUZU_ROOM=OFF \
             -DYUZU_ROOM_STANDALONE=OFF \
-            --debug-find 2>&1 | tee build-ios-debug/configure-debug-find.log || true
+            --debug-find > build-ios-debug/configure-debug-find.log 2>&1 || true
+          echo "Saved full --debug-find log to build-ios-debug/configure-debug-find.log"
+          {
+            echo "### debug-find note"
+            echo "Full debug-find output is stored in artifact file: build-ios-debug/configure-debug-find.log"
+            echo
+          } >> "$GITHUB_STEP_SUMMARY"
           echo "::endgroup::"
 
       - name: Upload diagnostics artifact

@@ -573,3 +573,13 @@ File: `.github/workflows/ios-bootstrap.yml`
   - tail of `CMakeConfigureLog.yaml`, `CMakeOutput.log`, and `CMakeError.log`
 - Added failure replay configure using `--debug-find` into separate directory (`build-ios-debug`) and persisted log file.
 - Added artifact upload step (`ios-bootstrap-diagnostics`) with key configure/debug logs for easier root-cause analysis.
+
+### 27) Make CI diagnostic output shorter and focused
+File: `.github/workflows/ios-bootstrap.yml`
+
+- Reduced noisy console output in failure diagnostics:
+  - removed long tails for `CMakeConfigureLog.yaml` and `CMakeOutput.log` from console.
+  - reduced `CMakeError.log` tail from 400 lines to 120 lines.
+- Added concise matched-error extraction (`cmake error`, `could not find`, `fatal`, `failed`, `openssl`, `httplib`, `carbon`).
+- Added compact failure summary to `GITHUB_STEP_SUMMARY`.
+- Kept full `--debug-find` output only in artifact file (no longer spamming main log view).
