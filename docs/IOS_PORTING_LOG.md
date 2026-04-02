@@ -820,3 +820,14 @@ File:
   - `MGF1(...)` returns zeroed buffer
   - `CalculateCMAC(...)` returns zeroed key
 - Keeps full existing OpenSSL-based behavior on non-iOS builds while unblocking iOS CI compile where OpenSSL headers are unavailable.
+
+### 52) Split debugger backend source for iOS bootstrap (no Boost.Process)
+Files:
+- `src/core/CMakeLists.txt`
+- `src/core/debugger/debugger_ios.cpp`
+
+- Removed unconditional debugger backend `.cpp` sources from `core` source list.
+- Added platform source selection:
+  - iOS uses `debugger/debugger_ios.cpp` (no-op debugger backend)
+  - non-iOS keeps full debugger stack (`debugger.cpp`, `gdbstub.cpp`, `gdbstub_arch.cpp`)
+- Avoids iOS build failure from missing Boost.Process headers (`boost/process/v1/async_pipe.hpp`) while preserving full debugger behavior on non-iOS targets.

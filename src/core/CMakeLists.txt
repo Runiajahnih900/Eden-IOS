@@ -34,12 +34,9 @@ add_library(core STATIC
     crypto/partition_data_manager.h
     crypto/xts_encryption_layer.cpp
     crypto/xts_encryption_layer.h
-    debugger/debugger.cpp
     debugger/debugger.h
     debugger/debugger_interface.h
-    debugger/gdbstub.cpp
     debugger/gdbstub.h
-    debugger/gdbstub_arch.cpp
     debugger/gdbstub_arch.h
     device_memory.cpp
     device_memory.h
@@ -1270,9 +1267,13 @@ endif()
 
 if (PLATFORM_IOS)
     target_sources(core PRIVATE crypto/aes_util_ios.cpp)
+    target_sources(core PRIVATE debugger/debugger_ios.cpp)
     target_sources(core PRIVATE hle/service/ssl/ssl_backend_none.cpp)
 else()
     target_sources(core PRIVATE crypto/aes_util.cpp)
+    target_sources(core PRIVATE debugger/debugger.cpp)
+    target_sources(core PRIVATE debugger/gdbstub.cpp)
+    target_sources(core PRIVATE debugger/gdbstub_arch.cpp)
     target_sources(core PRIVATE hle/service/ssl/ssl_backend_openssl.cpp)
     target_link_libraries(core PRIVATE OpenSSL::SSL OpenSSL::Crypto)
     target_compile_definitions(core PRIVATE CPPHTTPLIB_OPENSSL_SUPPORT)
