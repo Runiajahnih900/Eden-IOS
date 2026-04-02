@@ -687,3 +687,9 @@ File: `src/common/device_power_state.cpp`
 - Corrected Apple platform guards from `TARGET_OS_MAC` to `TARGET_OS_OSX`.
 - `TARGET_OS_MAC` is true on non-macOS Apple targets as well, which caused iOS simulator builds to include macOS-only IOKit power headers.
 - `IOKit/ps/IOPSKeys.h` and `IOPowerSources.h` are now included only for macOS builds, avoiding iOS compile failure.
+
+### 37) Add explicit iOS compile-definition guard for power-state code
+File: `src/common/device_power_state.cpp`
+
+- Added `!defined(YUZU_PLATFORM_IOS)` guard to Apple IOKit include and macOS runtime branch.
+- Ensures iOS bootstrap builds cannot enter macOS-only power source code path even if Apple target macros behave unexpectedly in simulator contexts.

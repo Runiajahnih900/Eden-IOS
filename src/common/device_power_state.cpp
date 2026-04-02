@@ -12,7 +12,7 @@ extern std::atomic<int> g_battery_percentage;
 extern std::atomic<bool> g_is_charging;
 extern std::atomic<bool> g_has_battery;
 
-#elif defined(__APPLE__)
+#elif defined(__APPLE__) && !defined(YUZU_PLATFORM_IOS)
 #include <TargetConditionals.h>
 #if TARGET_OS_OSX
 #include <IOKit/ps/IOPSKeys.h>
@@ -49,7 +49,7 @@ namespace Common {
         info.charging = g_is_charging.load(std::memory_order_relaxed);
         info.has_battery = g_has_battery.load(std::memory_order_relaxed);
 
-#elif defined(__APPLE__) && TARGET_OS_OSX
+#elif defined(__APPLE__) && !defined(YUZU_PLATFORM_IOS) && TARGET_OS_OSX
         CFTypeRef info_ref = IOPSCopyPowerSourcesInfo();
         CFArrayRef sources = IOPSCopyPowerSourcesList(info_ref);
         if (CFArrayGetCount(sources) > 0) {
