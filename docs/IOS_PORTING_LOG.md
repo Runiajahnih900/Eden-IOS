@@ -1059,3 +1059,16 @@ File:
 - Purpose: ensure deterministic `.ipa` artifact production for iPad installation flow
   while runtime-heavy linkage is reintroduced later behind explicit enable flag.
 
+### 76) Expose linker root-cause lines directly in public CI annotations
+File:
+- `.github/workflows/ios-bootstrap.yml`
+
+- Enabled verbose build output (`cmake --build ... --verbose`) for IPA job.
+- Expanded build error extraction patterns to prioritize linker root causes:
+  - `Undefined symbols for architecture`
+  - `symbol(s) not found`
+  - `framework not found`
+  - `library not found`
+  - `duplicate symbol`
+- Increased root-cause snippet window to improve first-failure visibility from annotations.
+

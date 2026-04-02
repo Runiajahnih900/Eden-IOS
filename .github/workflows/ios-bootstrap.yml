@@ -75,7 +75,7 @@ jobs:
       - name: Build iOS app target
         run: |
           set -o pipefail
-          cmake --build build-ios --target eden-ios-app --parallel 2>&1 | tee build-ios/build.log
+          cmake --build build-ios --target eden-ios-app --parallel --verbose 2>&1 | tee build-ios/build.log
 
       - name: Package unsigned IPA
         run: |
@@ -167,18 +167,18 @@ jobs:
 
           echo "::group::Build hard errors (short)"
           if [ -f build-ios/build.log ]; then
-            grep -nEi "error:|fatal error:|undefined reference|ld: error|ninja: build stopped|subcommand failed" build-ios/build.log | tail -n 120 || true
-            first_build_error=$(grep -nEi "fatal error:|error:|undefined reference|ld: error" build-ios/build.log | head -n 1 || true)
+            grep -nEi "Undefined symbols for architecture|symbol\(s\) not found|framework not found|library not found|duplicate symbol|error:|fatal error:|undefined reference|ld: error|ninja: build stopped|subcommand failed" build-ios/build.log | tail -n 120 || true
+            first_build_error=$(grep -nEi "Undefined symbols for architecture|symbol\(s\) not found|framework not found|library not found|duplicate symbol|undefined reference|ld: error|fatal error:|error:" build-ios/build.log | head -n 1 || true)
             {
               echo "### Build hard errors"
               echo '```text'
-              grep -nEi "error:|fatal error:|undefined reference|ld: error|ninja: build stopped|subcommand failed" build-ios/build.log | tail -n 120 || true
+              grep -nEi "Undefined symbols for architecture|symbol\(s\) not found|framework not found|library not found|duplicate symbol|error:|fatal error:|undefined reference|ld: error|ninja: build stopped|subcommand failed" build-ios/build.log | tail -n 120 || true
               echo '```'
               echo
               echo "### Build root cause snippet"
               echo '```text'
               awk '
-                /fatal error:|error:|undefined reference|ld: error/ {capture=1;left=16}
+                /Undefined symbols for architecture|symbol\(s\) not found|framework not found|library not found|duplicate symbol|fatal error:|error:|undefined reference|ld: error/ {capture=1;left=20}
                 capture && left>0 {print; left--; if (left==0) capture=0}
               ' build-ios/build.log | head -n 140 || true
               echo '```'
