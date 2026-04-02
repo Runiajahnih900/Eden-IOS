@@ -14,7 +14,7 @@
     self.title = @"Eden iOS";
     self.view.backgroundColor = [UIColor systemBackgroundColor];
 
-    UILabel* label = [[UILabel alloc] initWithFrame:CGRectZero];
+    UILabel* label = [[UILabel alloc] initWithFrame:[UIScreen mainScreen].bounds];
     label.translatesAutoresizingMaskIntoConstraints = NO;
     label.numberOfLines = 0;
     label.textAlignment = NSTextAlignmentCenter;
