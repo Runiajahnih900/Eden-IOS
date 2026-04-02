@@ -227,7 +227,7 @@ void TurboMode::Run(std::stop_token stop_token) {
 #endif
         // Wait for the next graphics queue submission if necessary.
         std::unique_lock lk{m_submission_lock};
-        m_submission_cv.wait(lk, stop_token, [this] {
+        (void)Common::WaitWithStopToken(m_submission_cv, lk, stop_token, [this] {
             return (std::chrono::steady_clock::now() - m_submission_time) <=
                    std::chrono::milliseconds{100};
         });

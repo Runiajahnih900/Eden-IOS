@@ -108,13 +108,15 @@ void EmuThread::run() {
             m_system.Run();
             m_stopped.Reset();
 
-            m_should_run_cv.wait(lk, stop_token, [&] { return !m_should_run; });
+            (void)Common::WaitWithStopToken(m_should_run_cv, lk, stop_token,
+                                            [&] { return !m_should_run; });
         } else {
             m_system.Pause();
             m_stopped.Set();
 
             EmulationPaused(lk);
-            m_should_run_cv.wait(lk, stop_token, [&] { return m_should_run; });
+            (void)Common::WaitWithStopToken(m_should_run_cv, lk, stop_token,
+                                            [&] { return m_should_run; });
             EmulationResumed(lk);
         }
     }

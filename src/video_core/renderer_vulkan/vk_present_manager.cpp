@@ -269,7 +269,10 @@ void PresentManager::PresentThread(std::stop_token token) {
     while (!token.stop_requested()) {
         std::unique_lock lock{queue_mutex};
         // Wait for presentation frames
-        frame_cv.wait(lock, token, [this] { return !present_queue.empty(); });
+        if (!Common::WaitWithStopToken(frame_cv, lock, token,
+                                       [this] { return !present_queue.empty(); })) {
+            return;
+        }
         if (!token.stop_requested()) {
             // Take the frame and notify anyone waiting
             Frame* frame = present_queue.front();

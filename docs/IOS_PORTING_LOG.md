@@ -768,3 +768,17 @@ Files:
 - Removed `process` from `BOOST_INCLUDE_LIBRARIES` when `PLATFORM_IOS` is enabled.
 - Skipped linking `Boost::process` in `core` for iOS profile.
 - Avoids Boost.Process source build on iOS toolchains, fixing `wordexp is unavailable: not available on iOS` failure.
+
+### 47) Replace remaining stop-token `wait` overloads in `.cpp` workers
+Files:
+- `src/video_core/cdma_pusher.cpp`
+- `src/audio_core/sink/sink_stream.cpp`
+- `src/yuzu/bootmanager.cpp`
+- `src/video_core/gpu_thread.cpp`
+- `src/video_core/renderer_vulkan/vk_turbo_mode.cpp`
+- `src/video_core/renderer_vulkan/vk_scheduler.cpp`
+- `src/video_core/renderer_vulkan/vk_present_manager.cpp`
+- `src/video_core/renderer_vulkan/vk_master_semaphore.cpp`
+
+- Replaced direct `condition_variable_any.wait(lock, stop_token, predicate)` calls with `Common::WaitWithStopToken(...)`.
+- Prevents further libc++ API-availability/overload mismatches across runtime worker loops in iOS bootstrap builds.

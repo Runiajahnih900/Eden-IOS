@@ -213,8 +213,8 @@ void MasterSemaphore::WaitThread(std::stop_token token) {
         vk::Fence fence;
         {
             std::unique_lock lock{wait_mutex};
-            wait_cv.wait(lock, token, [this] { return !wait_queue.empty(); });
-            if (token.stop_requested()) {
+            if (!Common::WaitWithStopToken(wait_cv, lock, token,
+                                           [this] { return !wait_queue.empty(); })) {
                 return;
             }
             std::tie(host_tick, fence) = std::move(wait_queue.front());
