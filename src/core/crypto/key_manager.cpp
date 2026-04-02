@@ -14,7 +14,10 @@
 #include <tuple>
 #include <vector>
 
+#if !defined(YUZU_PLATFORM_IOS)
 #include <openssl/evp.h>
+#include <openssl/bn.h>
+#endif
 
 #include "common/fs/file.h"
 #include "common/fs/fs.h"
@@ -513,6 +516,11 @@ static std::array<u8, size> operator^(const std::array<u8, size>& lhs,
 
 template <size_t target_size, size_t in_size>
 static std::array<u8, target_size> MGF1(const std::array<u8, in_size>& seed) {
+#if defined(YUZU_PLATFORM_IOS)
+    // iOS bootstrap build avoids OpenSSL; personalized-ticket path is disabled below.
+    std::array<u8, target_size> target{};
+    return target;
+#else
     // Avoids truncation overflow within the loop below.
     static_assert(target_size <= 0xFF);
 
@@ -543,6 +551,7 @@ static std::array<u8, target_size> MGF1(const std::array<u8, in_size>& seed) {
     std::array<u8, target_size> target;
     std::memcpy(target.data(), out.data(), target_size);
     return target;
+#endif
 }
 
 template <size_t size>
@@ -592,6 +601,12 @@ std::optional<Key128> KeyManager::ParseTicketTitleKey(const Ticket& ticket) {
         return std::nullopt;
     }
 
+#if defined(YUZU_PLATFORM_IOS)
+    LOG_WARNING(Crypto,
+                "Skipping personalized ticket title key parsing on iOS bootstrap (OpenSSL-free \
+build).");
+    return std::nullopt;
+#else
     std::array<u8, 0x100> rsa_step;
     {
         // Private context for OpenSSL bignumbers
@@ -632,6 +647,7 @@ std::optional<Key128> KeyManager::ParseTicketTitleKey(const Ticket& ticket) {
     Key128 key_temp{};
     std::memcpy(key_temp.data(), m_2.data() + *offset, key_temp.size());
     return key_temp;
+#endif
 }
 
 KeyManager::KeyManager() {
@@ -961,6 +977,9 @@ void KeyManager::DeriveSDSeedLazy() {
 }
 
 static Key128 CalculateCMAC(const u8* source, size_t size, const Key128& key) {
+#if defined(YUZU_PLATFORM_IOS)
+    return {};
+#else
     Key128 out{};
 
     static EVP_MAC* mac = EVP_MAC_fetch(nullptr, "cmac", nullptr);
@@ -976,6 +995,7 @@ static Key128 CalculateCMAC(const u8* source, size_t size, const Key128& key) {
     EVP_MAC_final(ctx, out.data(), &len, out.size());
 
     return out;
+#endif
 }
 
 void KeyManager::DeriveBase() {

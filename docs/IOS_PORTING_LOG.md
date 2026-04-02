@@ -808,3 +808,15 @@ Files:
   - iOS uses `crypto/aes_util_ios.cpp`
   - non-iOS keeps `crypto/aes_util.cpp` (OpenSSL path)
 - Added a minimal iOS bootstrap AES implementation to avoid OpenSSL header dependency (`openssl/err.h`) in CI compile profile.
+
+### 51) Make key manager OpenSSL usage optional for iOS bootstrap
+File:
+- `src/core/crypto/key_manager.cpp`
+
+- Wrapped OpenSSL headers (`evp.h`, `bn.h`) behind non-iOS compilation guard.
+- Added iOS fallback path in `ParseTicketTitleKey(...)` for personalized ticket decryption:
+  - logs warning and returns `std::nullopt` in bootstrap profile.
+- Added iOS fallback stubs in OpenSSL-dependent helpers:
+  - `MGF1(...)` returns zeroed buffer
+  - `CalculateCMAC(...)` returns zeroed key
+- Keeps full existing OpenSSL-based behavior on non-iOS builds while unblocking iOS CI compile where OpenSSL headers are unavailable.
