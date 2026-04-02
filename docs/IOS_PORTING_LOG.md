@@ -971,3 +971,13 @@ File:
   - ARC: `__weak typeof(self) weakSelf = self;`
   - non-ARC (MRC): `__unsafe_unretained typeof(self) weakSelf = self;`
 - Resolves iOS CI failure: `cannot create __weak reference in file using manual reference counting`.
+
+### 68) Fix designated-initializer contract warning in iOS demo controller
+File:
+- `src/ios/ios_runtime_demo_controller.h`
+
+- Kept custom initializer as `NS_DESIGNATED_INITIALIZER`.
+- Marked inherited `UIViewController` initializers as unavailable in subclass interface:
+  - `initWithNibName:bundle:`
+  - `initWithCoder:`
+- Resolves strict warning-as-error failure for missing override of superclass designated initializer.
