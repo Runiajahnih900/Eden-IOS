@@ -14,7 +14,6 @@
 #include <chrono>
 #include <condition_variable>
 #include <stop_token>
-#include <memory>
 #include <thread>
 #include <type_traits>
 #include <utility>
@@ -22,45 +21,14 @@
 #if !defined(__cpp_lib_jthread) || (__cpp_lib_jthread < 201911L)
 namespace std {
 
-#if !defined(__cpp_lib_stop_token) || (__cpp_lib_stop_token < 201907L)
-class stop_token {
-public:
-    stop_token() = default;
-
-    [[nodiscard]] bool stop_requested() const noexcept {
-        return state && state->load(std::memory_order_acquire);
-    }
-
-private:
-    explicit stop_token(std::shared_ptr<std::atomic_bool> state_) : state(std::move(state_)) {}
-
-    std::shared_ptr<std::atomic_bool> state;
-
-    friend class jthread;
-};
-
-template <typename Callback>
-class stop_callback {
-public:
-    stop_callback(stop_token token, Callback cb) : callback(std::move(cb)) {
-        if (token.stop_requested()) {
-            callback();
-        }
-    }
-
-private:
-    Callback callback;
-};
-#endif
-
 class jthread {
 public:
     jthread() noexcept = default;
 
     template <typename F, typename... Args>
-    explicit jthread(F&& f, Args&&... args) : stop_state(std::make_shared<std::atomic_bool>(false)) {
+    explicit jthread(F&& f, Args&&... args) {
         if constexpr (std::is_invocable_v<F, stop_token, Args...>) {
-            thread = std::thread(std::forward<F>(f), stop_token{stop_state},
+            thread = std::thread(std::forward<F>(f), stop_source.get_token(),
                                  std::forward<Args>(args)...);
         } else {
             thread = std::thread(std::forward<F>(f), std::forward<Args>(args)...);
@@ -85,7 +53,7 @@ public:
                 join();
             }
             thread = std::move(other.thread);
-            stop_state = std::move(other.stop_state);
+            stop_source = std::move(other.stop_source);
         }
         return *this;
     }
@@ -103,18 +71,16 @@ public:
     }
 
     void request_stop() noexcept {
-        if (stop_state) {
-            stop_state->store(true, std::memory_order_release);
-        }
+        (void)stop_source.request_stop();
     }
 
     [[nodiscard]] stop_token get_stop_token() const noexcept {
-        return stop_token{stop_state};
+        return stop_source.get_token();
     }
 
 private:
     std::thread thread;
-    std::shared_ptr<std::atomic_bool> stop_state;
+    std::stop_source stop_source;
 };
 
 } // namespace std

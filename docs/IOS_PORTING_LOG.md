@@ -757,5 +757,5 @@ Files:
 File: `src/common/polyfill_thread.h`
 
 - Added fallback implementation guarded by `__cpp_lib_jthread`.
-- Provides minimal `std::jthread` behavior (`request_stop`, `joinable`, `join`, move semantics) using `std::thread` + shared stop flag.
-- Includes fallback `stop_token` and `stop_callback` only when standard stop-token support is unavailable.
+- Provides minimal `std::jthread` behavior (`request_stop`, `joinable`, `join`, move semantics) using `std::thread` + `std::stop_source`.
+- Avoids redefining `std::stop_token`, preventing ambiguity on libc++ variants that expose `stop_token` but not `jthread`.
