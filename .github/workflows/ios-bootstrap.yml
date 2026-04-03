@@ -42,6 +42,26 @@ jobs:
           brew list glslang >/dev/null 2>&1 || brew install glslang
           glslangValidator --version
 
+      - name: Install ccache
+        run: |
+          brew list ccache >/dev/null 2>&1 || brew install ccache
+          ccache --version
+
+      - name: Restore ccache
+        uses: actions/cache@v4
+        with:
+          path: ~/.ccache
+          key: ${{ runner.os }}-ios-bootstrap-ccache-${{ github.ref_name }}-${{ hashFiles('CMakeLists.txt', 'src/**', 'externals/**', '.github/workflows/ios-bootstrap.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-ios-bootstrap-ccache-${{ github.ref_name }}-
+            ${{ runner.os }}-ios-bootstrap-ccache-
+
+      - name: Initialize ccache stats
+        run: |
+          ccache --zero-stats
+          ccache --max-size=2G
+          ccache --show-config
+
       - name: Configure iOS app (iphoneos)
         run: |
           mkdir -p build-ios
@@ -49,6 +69,10 @@ jobs:
           cmake -S . -B build-ios \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_OBJC_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_OBJCXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_SYSTEM_PROCESSOR=arm64 \
             -DCMAKE_OSX_SYSROOT=iphoneos \
@@ -76,6 +100,10 @@ jobs:
         run: |
           set -o pipefail
           cmake --build build-ios --target eden-ios-app --parallel --verbose 2>&1 | tee build-ios/build.log
+
+      - name: Show ccache stats
+        if: always()
+        run: ccache --show-stats
 
       - name: Package unsigned IPA
         run: |
@@ -211,6 +239,10 @@ jobs:
           cmake -S . -B build-ios-debug \
             -G Ninja \
             -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_C_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_CXX_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_OBJC_COMPILER_LAUNCHER=ccache \
+            -DCMAKE_OBJCXX_COMPILER_LAUNCHER=ccache \
             -DCMAKE_SYSTEM_NAME=iOS \
             -DCMAKE_SYSTEM_PROCESSOR=arm64 \
             -DCMAKE_OSX_SYSROOT=iphoneos \

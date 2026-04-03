@@ -50,6 +50,7 @@ target_compile_definitions(yuzu-ios-bootstrap PUBLIC YUZU_IOS_BOOTSTRAP=1)
 
 if (PLATFORM_IOS)
     enable_language(OBJC)
+    enable_language(OBJCXX)
 
     set(IOS_APP_EXECUTABLE_NAME "EdenIOS" CACHE STRING "Executable name for iOS app bundle")
     set(IOS_APP_BUNDLE_IDENTIFIER "com.edenemu.ios" CACHE STRING "Bundle identifier for iOS app bundle")
@@ -70,13 +71,17 @@ if (PLATFORM_IOS)
 
     if (IOS_APP_LINK_BOOTSTRAP)
         target_link_libraries(eden-ios-app PRIVATE yuzu-ios-bootstrap)
+        target_link_libraries(eden-ios-app PRIVATE c++)
         target_compile_definitions(eden-ios-app PRIVATE YUZU_IOS_BOOTSTRAP=1)
+        set(_EDEN_IOS_APP_LINKER_LANGUAGE OBJCXX)
+    else()
+        set(_EDEN_IOS_APP_LINKER_LANGUAGE OBJC)
     endif()
 
     set_target_properties(eden-ios-app PROPERTIES
         OUTPUT_NAME ${IOS_APP_EXECUTABLE_NAME}
         MACOSX_BUNDLE_INFO_PLIST ${CMAKE_CURRENT_BINARY_DIR}/Info-iOS.plist
         XCODE_ATTRIBUTE_TARGETED_DEVICE_FAMILY "2"
-        LINKER_LANGUAGE OBJC
+        LINKER_LANGUAGE ${_EDEN_IOS_APP_LINKER_LANGUAGE}
         XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES)
 endif()

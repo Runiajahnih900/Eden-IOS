@@ -1138,3 +1138,17 @@ Files:
   - subscribe to runtime event notifications and reflect state in status label.
   - keep no-op fallback messaging when runtime linkage is disabled.
 
+### 83) Improve runtime-linker compatibility and accelerate CI rebuilds
+Files:
+- `src/ios/CMakeLists.txt`
+- `.github/workflows/ios-bootstrap.yml`
+
+- iOS app linker mode now switches based on runtime-link option:
+  - `IOS_APP_LINK_BOOTSTRAP=ON` -> `LINKER_LANGUAGE OBJCXX`
+  - `IOS_APP_LINK_BOOTSTRAP=OFF` -> `LINKER_LANGUAGE OBJC`
+- Enabled `OBJCXX` language in iOS subtree and added explicit `c++` linkage when runtime bootstrap is linked.
+- Added `ccache` to iOS workflow for faster incremental CI runs:
+  - install + restore cache + stats reporting
+  - configure uses compiler launchers for C/C++/ObjC/ObjC++
+  - warm-cache reruns are expected to be significantly faster than cold builds.
+
