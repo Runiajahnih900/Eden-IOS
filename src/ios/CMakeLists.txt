@@ -6,6 +6,8 @@ add_library(yuzu-ios-bootstrap STATIC
     ios_bootstrap.h
     ios_bootstrap_c_api.cpp
     ios_bootstrap_c_api.h
+    ios_setup_c_api.cpp
+    ios_setup_c_api.h
     ios_emu_window_headless.cpp
     ios_emu_window_headless.h
     ios_runtime_session.cpp
@@ -17,6 +19,8 @@ if (PLATFORM_IOS)
     target_sources(yuzu-ios-bootstrap PRIVATE
         ios_bootstrap_objc_bridge.h
         ios_bootstrap_objc_bridge.mm
+        ios_setup_objc_bridge.h
+        ios_setup_objc_bridge.mm
         ios_runtime_objc_bridge.h
         ios_runtime_objc_bridge.mm
         ios_runtime_view_model.h

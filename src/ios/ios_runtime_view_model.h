@@ -31,6 +31,15 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setStartExecutionThreadEnabled:(BOOL)enabled;
 - (BOOL)isStartExecutionThreadEnabled;
 
+- (void)setValidationLayersEnabled:(BOOL)enabled;
+- (BOOL)isValidationLayersEnabled;
+
+- (void)setRendererBackendValue:(NSInteger)value;
+- (NSInteger)rendererBackendValue;
+
+- (void)setResolutionSetupValue:(NSInteger)value;
+- (NSInteger)resolutionSetupValue;
+
 @end
 
 NS_ASSUME_NONNULL_END

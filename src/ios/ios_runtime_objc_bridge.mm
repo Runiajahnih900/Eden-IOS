@@ -139,11 +139,27 @@ void RuntimeEventNotificationCallback(const EdenIOSRuntimeEventType event_type,
                              enableValidationLayers:(BOOL)enableValidationLayers
                                startExecutionThread:(BOOL)startExecutionThread
                                            gamePath:(nullable NSString*)gamePath {
+        return [self startWithRequestJIT:requestJIT
+                            enableValidationLayers:enableValidationLayers
+                                startExecutionThread:startExecutionThread
+                                                        gamePath:gamePath
+                                         rendererBackend:-1
+                                            resolutionSetup:-1];
+}
+
++ (EdenIOSRuntimeBridgeResult*)startWithRequestJIT:(BOOL)requestJIT
+                                                         enableValidationLayers:(BOOL)enableValidationLayers
+                                                             startExecutionThread:(BOOL)startExecutionThread
+                                                                                     gamePath:(nullable NSString*)gamePath
+                                                                        rendererBackend:(NSInteger)rendererBackend
+                                                                         resolutionSetup:(NSInteger)resolutionSetup {
     EdenIOSRuntimeStartOptions options = {
         .request_jit = requestJIT ? 1 : 0,
         .enable_validation_layers = enableValidationLayers ? 1 : 0,
         .start_execution_thread = startExecutionThread ? 1 : 0,
         .game_path = gamePath != nil ? [gamePath UTF8String] : NULL,
+                .renderer_backend = (int)rendererBackend,
+                .resolution_setup = (int)resolutionSetup,
     };
 
     EdenIOSRuntimeState state = {0};

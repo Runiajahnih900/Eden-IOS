@@ -1341,3 +1341,56 @@ Files:
   - starts runtime thread by default on manual start
 - Purpose: address user-facing state where app UI looked like diagnostics shell only and runtime start failed due to missing game path.
 
+### 98) Add first-run setup bridge for keys and firmware import on iOS
+Files:
+- `src/ios/ios_setup_c_api.h`
+- `src/ios/ios_setup_c_api.cpp`
+- `src/ios/ios_setup_objc_bridge.h`
+- `src/ios/ios_setup_objc_bridge.mm`
+- `src/ios/CMakeLists.txt`
+
+- Added dedicated iOS setup C API and Objective-C bridge for frontend setup flows:
+  - check setup status (`keys_installed`, `firmware_installed`)
+  - install keys by delegating to existing `FirmwareManager::InstallKeys(...)`
+  - install firmware from extracted firmware folder (`.nca` copy into `nand/system/Contents/registered`)
+- Added deterministic status/report strings for UI feedback and live diagnostics.
+- Purpose: provide standard emulator setup capability (keys + firmware import) directly from iOS UI.
+
+### 99) Runtime start preflight hardening and graphics option wiring
+Files:
+- `src/ios/ios_runtime_session.h`
+- `src/ios/ios_runtime_session.cpp`
+- `src/ios/ios_runtime_c_api.h`
+- `src/ios/ios_runtime_c_api.cpp`
+- `src/ios/ios_runtime_objc_bridge.h`
+- `src/ios/ios_runtime_objc_bridge.mm`
+- `src/ios/ios_runtime_view_model.h`
+- `src/ios/ios_runtime_view_model.mm`
+- `src/ios/ios_app_main.m`
+
+- Extended runtime start options with configurable graphics fields:
+  - `renderer_backend`
+  - `resolution_setup`
+  - validation layers toggle propagated from UI.
+- Runtime now applies selected graphics settings before `Core::System::Load(...)` and reports effective values.
+- Added start preflight gates in iOS runtime session for setup completeness:
+  - reject start when keys are missing
+  - reject start when firmware is missing
+- Updated app-shell runtime start path to pass persisted graphics preferences from `NSUserDefaults`.
+- Purpose: reduce crash-prone starts from incomplete setup and ensure first-run emulator settings actually affect runtime.
+
+### 100) Upgrade Play UI into setup-first launcher (keys, firmware, game, graphics)
+File:
+- `src/ios/ios_runtime_demo_controller.mm`
+
+- Reworked Play screen to include standard first-run emulator controls:
+  - `Import Keys` (multi-file picker, `prod.keys` validation)
+  - `Import Firmware` (folder-first firmware import flow)
+  - `Import Game` and game library refresh
+  - setup status badge (`keys`/`firmware` readiness)
+  - graphics controls (renderer, resolution scale, validation switch)
+- Added persisted graphics settings and runtime wiring through view-model.
+- Added security-scoped resource handling for document picker import operations.
+- Start button is now setup-aware and blocks launch until keys + firmware + game selection are ready.
+- Purpose: match standard Switch-emulator onboarding expectations and prevent tap-to-crash behavior during initial bring-up.
+

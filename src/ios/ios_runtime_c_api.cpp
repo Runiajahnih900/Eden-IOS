@@ -76,6 +76,8 @@ int EdenIOSRuntimeStart(const EdenIOSRuntimeStartOptions* options,
         if (options->game_path) {
             request.game_path = options->game_path;
         }
+        request.renderer_backend = options->renderer_backend;
+        request.resolution_setup = options->resolution_setup;
     }
 
     IOSFrontend::RuntimeSessionStatus status{};

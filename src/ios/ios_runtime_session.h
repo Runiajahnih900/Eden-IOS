@@ -13,6 +13,8 @@ struct RuntimeStartRequest {
     bool enable_validation_layers = false;
     bool start_execution_thread = true;
     std::string game_path;
+    int renderer_backend = -1;
+    int resolution_setup = -1;
 };
 
 struct RuntimeSessionStatus {

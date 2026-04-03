@@ -8,6 +8,8 @@
 @property(nonatomic, assign) BOOL requestJIT;
 @property(nonatomic, assign) BOOL enableValidationLayers;
 @property(nonatomic, assign) BOOL startExecutionThread;
+@property(nonatomic, assign) NSInteger rendererBackend;
+@property(nonatomic, assign) NSInteger resolutionSetup;
 @property(nonatomic, copy, readwrite) NSString* statusText;
 @property(nonatomic, strong, readwrite) EdenIOSRuntimeBridgeResult* latestResult;
 
@@ -35,6 +37,8 @@
         _requestJIT = requestJIT;
         _enableValidationLayers = enableValidationLayers;
         _startExecutionThread = YES;
+        _rendererBackend = -1;
+        _resolutionSetup = -1;
 
         [EdenIOSRuntimeBridge setEventNotificationsEnabled:YES];
         [[NSNotificationCenter defaultCenter] addObserver:self
@@ -87,7 +91,9 @@
         [EdenIOSRuntimeBridge startWithRequestJIT:self.requestJIT
                            enableValidationLayers:self.enableValidationLayers
                             startExecutionThread:self.startExecutionThread
-                                         gamePath:gamePath];
+                                         gamePath:gamePath
+                                  rendererBackend:self.rendererBackend
+                                   resolutionSetup:self.resolutionSetup];
     [self applyResultAndNotify:result];
     return result;
 }
@@ -116,6 +122,30 @@
 
 - (BOOL)isStartExecutionThreadEnabled {
     return self.startExecutionThread;
+}
+
+- (void)setValidationLayersEnabled:(BOOL)enabled {
+    self.enableValidationLayers = enabled;
+}
+
+- (BOOL)isValidationLayersEnabled {
+    return self.enableValidationLayers;
+}
+
+- (void)setRendererBackendValue:(NSInteger)value {
+    self.rendererBackend = value;
+}
+
+- (NSInteger)rendererBackendValue {
+    return self.rendererBackend;
+}
+
+- (void)setResolutionSetupValue:(NSInteger)value {
+    self.resolutionSetup = value;
+}
+
+- (NSInteger)resolutionSetupValue {
+    return self.resolutionSetup;
 }
 
 @end

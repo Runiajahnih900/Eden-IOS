@@ -45,6 +45,13 @@ FOUNDATION_EXPORT NSString* const EdenIOSRuntimeEventReportKey;
                                startExecutionThread:(BOOL)startExecutionThread
                                            gamePath:(nullable NSString*)gamePath;
 
++ (EdenIOSRuntimeBridgeResult*)startWithRequestJIT:(BOOL)requestJIT
+                             enableValidationLayers:(BOOL)enableValidationLayers
+                               startExecutionThread:(BOOL)startExecutionThread
+                                           gamePath:(nullable NSString*)gamePath
+                                    rendererBackend:(NSInteger)rendererBackend
+                                     resolutionSetup:(NSInteger)resolutionSetup;
+
 + (void)stop;
 
 + (EdenIOSRuntimeBridgeResult*)tick;

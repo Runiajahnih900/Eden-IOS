@@ -14,6 +14,8 @@ typedef struct EdenIOSRuntimeStartOptions {
     int enable_validation_layers;
     int start_execution_thread;
     const char* game_path;
+    int renderer_backend;
+    int resolution_setup;
 } EdenIOSRuntimeStartOptions;
 
 typedef struct EdenIOSRuntimeState {

@@ -3,12 +3,15 @@
 
 #include "ios_runtime_session.h"
 
+#include <filesystem>
 #include <mutex>
 #include <string>
 #include <thread>
 #include <atomic>
 
+#include "common/fs/path_util.h"
 #include "common/settings.h"
+#include "common/settings_enums.h"
 #include "ios_bootstrap.h"
 #include "ios_emu_window_headless.h"
 #include "core/core.h"
@@ -18,6 +21,7 @@
 #include "core/hle/service/am/applet_manager.h"
 #include "core/hle/service/filesystem/filesystem.h"
 #include "core/loader/loader.h"
+#include "frontend_common/content_manager.h"
 #include "video_core/gpu.h"
 
 namespace IOSFrontend {
@@ -71,6 +75,82 @@ LoaderPreflightResult RunLoaderPreflight(const std::string& game_path) {
     return result;
 }
 
+bool HasInstalledFirmware() {
+    Common::FS::CreateEdenPaths();
+    const std::filesystem::path firmware_dir =
+        Common::FS::GetEdenPath(Common::FS::EdenPath::NANDDir) / "system/Contents/registered";
+
+    std::error_code ec;
+    if (!std::filesystem::exists(firmware_dir, ec) || ec) {
+        return false;
+    }
+
+    for (const auto& entry : std::filesystem::recursive_directory_iterator(firmware_dir, ec)) {
+        if (ec) {
+            break;
+        }
+
+        if (!entry.is_regular_file()) {
+            continue;
+        }
+
+        if (entry.path().extension() == ".nca") {
+            return true;
+        }
+    }
+    return false;
+}
+
+Settings::RendererBackend SelectRendererBackend(const int value) {
+    switch (value) {
+    case static_cast<int>(Settings::RendererBackend::OpenGL_GLSL):
+        return Settings::RendererBackend::OpenGL_GLSL;
+    case static_cast<int>(Settings::RendererBackend::Vulkan):
+        return Settings::RendererBackend::Vulkan;
+    case static_cast<int>(Settings::RendererBackend::Null):
+        return Settings::RendererBackend::Null;
+    case static_cast<int>(Settings::RendererBackend::OpenGL_GLASM):
+        return Settings::RendererBackend::OpenGL_GLASM;
+    case static_cast<int>(Settings::RendererBackend::OpenGL_SPIRV):
+        return Settings::RendererBackend::OpenGL_SPIRV;
+    default:
+        return Settings::RendererBackend::Vulkan;
+    }
+}
+
+Settings::ResolutionSetup SelectResolutionSetup(const int value) {
+    switch (value) {
+    case static_cast<int>(Settings::ResolutionSetup::Res1_4X):
+        return Settings::ResolutionSetup::Res1_4X;
+    case static_cast<int>(Settings::ResolutionSetup::Res1_2X):
+        return Settings::ResolutionSetup::Res1_2X;
+    case static_cast<int>(Settings::ResolutionSetup::Res3_4X):
+        return Settings::ResolutionSetup::Res3_4X;
+    case static_cast<int>(Settings::ResolutionSetup::Res1X):
+        return Settings::ResolutionSetup::Res1X;
+    case static_cast<int>(Settings::ResolutionSetup::Res5_4X):
+        return Settings::ResolutionSetup::Res5_4X;
+    case static_cast<int>(Settings::ResolutionSetup::Res3_2X):
+        return Settings::ResolutionSetup::Res3_2X;
+    case static_cast<int>(Settings::ResolutionSetup::Res2X):
+        return Settings::ResolutionSetup::Res2X;
+    case static_cast<int>(Settings::ResolutionSetup::Res3X):
+        return Settings::ResolutionSetup::Res3X;
+    case static_cast<int>(Settings::ResolutionSetup::Res4X):
+        return Settings::ResolutionSetup::Res4X;
+    case static_cast<int>(Settings::ResolutionSetup::Res5X):
+        return Settings::ResolutionSetup::Res5X;
+    case static_cast<int>(Settings::ResolutionSetup::Res6X):
+        return Settings::ResolutionSetup::Res6X;
+    case static_cast<int>(Settings::ResolutionSetup::Res7X):
+        return Settings::ResolutionSetup::Res7X;
+    case static_cast<int>(Settings::ResolutionSetup::Res8X):
+        return Settings::ResolutionSetup::Res8X;
+    default:
+        return Settings::ResolutionSetup::Res1X;
+    }
+}
+
 void TearDownSystemLocked() {
     if (!g_system) {
         if (g_run_thread.joinable()) {
@@ -100,7 +180,14 @@ bool StartCoreLoadPath(const RuntimeStartRequest& request, std::string* out_repo
     g_system = std::make_unique<Core::System>();
     g_system->Initialize();
 
-    Settings::values.renderer_backend = Settings::RendererBackend::Null;
+    const Settings::RendererBackend renderer_backend =
+        SelectRendererBackend(request.renderer_backend);
+    const Settings::ResolutionSetup resolution_setup =
+        SelectResolutionSetup(request.resolution_setup);
+
+    Settings::values.renderer_backend = renderer_backend;
+    Settings::values.resolution_setup = resolution_setup;
+    Settings::UpdateRescalingInfo();
     g_system->ApplySettings();
 
     g_system->SetContentProvider(std::make_unique<FileSys::ContentProviderUnion>());
@@ -142,6 +229,10 @@ bool StartCoreLoadPath(const RuntimeStartRequest& request, std::string* out_repo
 
     if (out_report) {
         *out_report += ";core_load_result=success";
+        *out_report += ";renderer_backend=";
+        *out_report += std::string(Settings::CanonicalizeEnum(renderer_backend));
+        *out_report += ";resolution_setup=";
+        *out_report += std::string(Settings::CanonicalizeEnum(resolution_setup));
         *out_report += request.start_execution_thread ? ";core_run_thread=started"
                                                       : ";core_run_thread=disabled";
     }
@@ -172,6 +263,13 @@ bool StartRuntimeSession(const RuntimeStartRequest& request, RuntimeSessionStatu
     std::string bootstrap_report = BuildBootstrapReport(bootstrap_status);
 
     LoaderPreflightResult loader_preflight{};
+    const bool keys_present = ContentManager::AreKeysPresent();
+    const bool firmware_present = HasInstalledFirmware();
+    bootstrap_report += ";keys_present=";
+    bootstrap_report += keys_present ? "true" : "false";
+    bootstrap_report += ";firmware_present=";
+    bootstrap_report += firmware_present ? "true" : "false";
+
     if (bootstrap_status.ready && bootstrap_status.game_path_valid) {
         loader_preflight = RunLoaderPreflight(request.game_path);
         bootstrap_report += ";loader_file_opened=";
@@ -188,6 +286,7 @@ bool StartRuntimeSession(const RuntimeStartRequest& request, RuntimeSessionStatu
     {
         std::scoped_lock lock(g_runtime_mutex);
         if (!bootstrap_status.ready || !bootstrap_status.game_path_valid ||
+            !keys_present || !firmware_present ||
             !loader_preflight.file_opened || !loader_preflight.type_known ||
             !loader_preflight.bootable) {
             TearDownSystemLocked();

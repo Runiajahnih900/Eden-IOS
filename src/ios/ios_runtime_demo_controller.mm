@@ -3,32 +3,91 @@
 
 #import "ios_runtime_demo_controller.h"
 
+#import "ios_setup_objc_bridge.h"
 #import "ios_runtime_objc_bridge.h"
 #import "ios_runtime_view_model.h"
 
+#if __has_include(<UniformTypeIdentifiers/UniformTypeIdentifiers.h>)
+#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
+#endif
+
 static NSString* const EdenLastGamePathDefaultsKey = @"EdenLastGamePath";
+static NSString* const EdenGraphicsRendererDefaultsKey = @"EdenGraphicsRenderer";
+static NSString* const EdenGraphicsResolutionDefaultsKey = @"EdenGraphicsResolution";
+static NSString* const EdenGraphicsValidationDefaultsKey = @"EdenGraphicsValidation";
 
 static NSString* const EdenGamesFolderName = @"Games";
 
+typedef NS_ENUM(NSInteger, EdenImportMode) {
+    EdenImportModeGame = 0,
+    EdenImportModeKeys = 1,
+    EdenImportModeFirmware = 2,
+};
+
+static NSInteger EdenRendererIndexToValue(NSInteger index) {
+    switch (index) {
+    case 1:
+        return 2; // RendererBackend::Null
+    case 0:
+    default:
+        return 1; // RendererBackend::Vulkan
+    }
+}
+
+static NSInteger EdenRendererValueToIndex(NSInteger value) {
+    return value == 2 ? 1 : 0;
+}
+
+static NSInteger EdenResolutionIndexToValue(NSInteger index) {
+    switch (index) {
+    case 1:
+        return 6; // ResolutionSetup::Res2X
+    case 2:
+        return 7; // ResolutionSetup::Res3X
+    case 0:
+    default:
+        return 3; // ResolutionSetup::Res1X
+    }
+}
+
+static NSInteger EdenResolutionValueToIndex(NSInteger value) {
+    switch (value) {
+    case 6:
+        return 1;
+    case 7:
+        return 2;
+    default:
+        return 0;
+    }
+}
+
 static NSArray<NSString*>* EdenSupportedGameExtensions(void) {
-        static NSArray<NSString*>* extensions = nil;
-        static dispatch_once_t onceToken;
-        dispatch_once(&onceToken, ^{
-            extensions = @[@"nsp", @"xci", @"nca", @"nro", @"nso", @"kip", @"zip", @"7z"];
-        });
-        return extensions;
+    static NSArray<NSString*>* extensions = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        extensions = @[@"nsp", @"xci", @"nca", @"nro", @"nso", @"kip", @"zip", @"7z"];
+    });
+    return extensions;
 }
 
 @interface EdenIOSRuntimeDemoController () <UITableViewDataSource, UITableViewDelegate, UIDocumentPickerDelegate>
 
 @property(nonatomic, strong) EdenIOSRuntimeViewModel* viewModel;
 @property(nonatomic, strong) UILabel* statusLabel;
+@property(nonatomic, strong) UILabel* setupStatusLabel;
 @property(nonatomic, strong) UILabel* selectedGameLabel;
 @property(nonatomic, strong) UITextField* logEndpointField;
 @property(nonatomic, strong) UISwitch* runThreadSwitch;
+@property(nonatomic, strong) UISwitch* validationSwitch;
+@property(nonatomic, strong) UISegmentedControl* rendererControl;
+@property(nonatomic, strong) UISegmentedControl* resolutionControl;
 @property(nonatomic, strong) UITableView* gamesTableView;
+@property(nonatomic, strong) UIButton* startButton;
 @property(nonatomic, strong) NSArray<NSURL*>* gameFiles;
 @property(nonatomic, copy) NSString* selectedGamePath;
+@property(nonatomic, assign) EdenImportMode importMode;
+@property(nonatomic, assign) BOOL keysInstalled;
+@property(nonatomic, assign) BOOL firmwareInstalled;
 
 @end
 
@@ -51,6 +110,9 @@ static NSArray<NSString*>* EdenSupportedGameExtensions(void) {
                 weakSelf.statusLabel.text = statusText;
             });
         };
+        _importMode = EdenImportModeGame;
+        _keysInstalled = NO;
+        _firmwareInstalled = NO;
     }
     return self;
 }
@@ -99,7 +161,7 @@ static NSArray<NSString*>* EdenSupportedGameExtensions(void) {
     subtitleLabel.numberOfLines = 0;
     subtitleLabel.textColor = [UIColor colorWithRed:0.78 green:0.84 blue:0.95 alpha:1.0];
     subtitleLabel.font = [UIFont fontWithName:@"AvenirNext-Medium" size:14.0] ?: [UIFont systemFontOfSize:14.0 weight:UIFontWeightMedium];
-    subtitleLabel.text = @"Import file .nsp/.xci, pilih game dari library, lalu tekan Start untuk menjalankan runtime.";
+    subtitleLabel.text = @"Setup awal: import keys, firmware, dan game. Setelah itu atur grafik lalu Start.";
 
     [heroCard addSubview:titleLabel];
     [heroCard addSubview:subtitleLabel];
@@ -114,14 +176,39 @@ static NSArray<NSString*>* EdenSupportedGameExtensions(void) {
         [subtitleLabel.bottomAnchor constraintEqualToAnchor:heroCard.bottomAnchor constant:-16.0],
     ]];
 
-    UIButton* importButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    importButton.translatesAutoresizingMaskIntoConstraints = NO;
-    [importButton setTitle:@"Import Game" forState:UIControlStateNormal];
-    [importButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    importButton.backgroundColor = [UIColor colorWithRed:0.17 green:0.43 blue:0.82 alpha:1.0];
-    importButton.layer.cornerRadius = 10.0;
-    importButton.titleLabel.font = [UIFont fontWithName:@"AvenirNext-DemiBold" size:15.0] ?: [UIFont systemFontOfSize:15.0 weight:UIFontWeightSemibold];
-    [importButton addTarget:self action:@selector(onImportTapped) forControlEvents:UIControlEventTouchUpInside];
+    self.setupStatusLabel = [[UILabel alloc] init];
+    self.setupStatusLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    self.setupStatusLabel.numberOfLines = 0;
+    self.setupStatusLabel.textColor = [UIColor colorWithRed:0.88 green:0.93 blue:1.0 alpha:1.0];
+    self.setupStatusLabel.font = [UIFont fontWithName:@"AvenirNext-Medium" size:13.0] ?: [UIFont systemFontOfSize:13.0 weight:UIFontWeightMedium];
+    self.setupStatusLabel.text = @"Setup status: checking...";
+
+    UIButton* importKeysButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    importKeysButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [importKeysButton setTitle:@"Import Keys" forState:UIControlStateNormal];
+    [importKeysButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    importKeysButton.backgroundColor = [UIColor colorWithRed:0.65 green:0.45 blue:0.17 alpha:1.0];
+    importKeysButton.layer.cornerRadius = 10.0;
+    importKeysButton.titleLabel.font = [UIFont fontWithName:@"AvenirNext-DemiBold" size:15.0] ?: [UIFont systemFontOfSize:15.0 weight:UIFontWeightSemibold];
+    [importKeysButton addTarget:self action:@selector(onImportKeysTapped) forControlEvents:UIControlEventTouchUpInside];
+
+    UIButton* importFirmwareButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    importFirmwareButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [importFirmwareButton setTitle:@"Import Firmware" forState:UIControlStateNormal];
+    [importFirmwareButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    importFirmwareButton.backgroundColor = [UIColor colorWithRed:0.14 green:0.45 blue:0.63 alpha:1.0];
+    importFirmwareButton.layer.cornerRadius = 10.0;
+    importFirmwareButton.titleLabel.font = [UIFont fontWithName:@"AvenirNext-DemiBold" size:15.0] ?: [UIFont systemFontOfSize:15.0 weight:UIFontWeightSemibold];
+    [importFirmwareButton addTarget:self action:@selector(onImportFirmwareTapped) forControlEvents:UIControlEventTouchUpInside];
+
+    UIButton* importGameButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    importGameButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [importGameButton setTitle:@"Import Game" forState:UIControlStateNormal];
+    [importGameButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    importGameButton.backgroundColor = [UIColor colorWithRed:0.17 green:0.43 blue:0.82 alpha:1.0];
+    importGameButton.layer.cornerRadius = 10.0;
+    importGameButton.titleLabel.font = [UIFont fontWithName:@"AvenirNext-DemiBold" size:15.0] ?: [UIFont systemFontOfSize:15.0 weight:UIFontWeightSemibold];
+    [importGameButton addTarget:self action:@selector(onImportGameTapped) forControlEvents:UIControlEventTouchUpInside];
 
     UIButton* scanButton = [UIButton buttonWithType:UIButtonTypeSystem];
     scanButton.translatesAutoresizingMaskIntoConstraints = NO;
@@ -132,11 +219,17 @@ static NSArray<NSString*>* EdenSupportedGameExtensions(void) {
     scanButton.titleLabel.font = [UIFont fontWithName:@"AvenirNext-DemiBold" size:15.0] ?: [UIFont systemFontOfSize:15.0 weight:UIFontWeightSemibold];
     [scanButton addTarget:self action:@selector(onScanTapped) forControlEvents:UIControlEventTouchUpInside];
 
-    UIStackView* importRow = [[UIStackView alloc] initWithArrangedSubviews:@[importButton, scanButton]];
-    importRow.translatesAutoresizingMaskIntoConstraints = NO;
-    importRow.axis = UILayoutConstraintAxisHorizontal;
-    importRow.spacing = 10.0;
-    importRow.distribution = UIStackViewDistributionFillEqually;
+    UIStackView* setupRow1 = [[UIStackView alloc] initWithArrangedSubviews:@[importKeysButton, importFirmwareButton]];
+    setupRow1.translatesAutoresizingMaskIntoConstraints = NO;
+    setupRow1.axis = UILayoutConstraintAxisHorizontal;
+    setupRow1.spacing = 10.0;
+    setupRow1.distribution = UIStackViewDistributionFillEqually;
+
+    UIStackView* setupRow2 = [[UIStackView alloc] initWithArrangedSubviews:@[importGameButton, scanButton]];
+    setupRow2.translatesAutoresizingMaskIntoConstraints = NO;
+    setupRow2.axis = UILayoutConstraintAxisHorizontal;
+    setupRow2.spacing = 10.0;
+    setupRow2.distribution = UIStackViewDistributionFillEqually;
 
     self.gamesTableView = [[UITableView alloc] initWithFrame:CGRectZero style:UITableViewStyleInsetGrouped];
     self.gamesTableView.translatesAutoresizingMaskIntoConstraints = NO;
@@ -152,6 +245,59 @@ static NSArray<NSString*>* EdenSupportedGameExtensions(void) {
     self.selectedGameLabel.textColor = [UIColor colorWithRed:0.83 green:0.89 blue:0.99 alpha:1.0];
     self.selectedGameLabel.font = [UIFont fontWithName:@"AvenirNext-Medium" size:13.0] ?: [UIFont systemFontOfSize:13.0 weight:UIFontWeightMedium];
     self.selectedGameLabel.text = @"Game terpilih: belum ada";
+
+    UILabel* graphicsTitleLabel = [[UILabel alloc] init];
+    graphicsTitleLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    graphicsTitleLabel.textColor = [UIColor colorWithRed:0.9 green:0.95 blue:1.0 alpha:1.0];
+    graphicsTitleLabel.font = [UIFont fontWithName:@"AvenirNext-DemiBold" size:15.0] ?: [UIFont systemFontOfSize:15.0 weight:UIFontWeightSemibold];
+    graphicsTitleLabel.text = @"Graphics";
+
+    self.rendererControl = [[UISegmentedControl alloc] initWithItems:@[@"Vulkan", @"Null"]];
+    self.rendererControl.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.rendererControl addTarget:self action:@selector(onRendererChanged) forControlEvents:UIControlEventValueChanged];
+
+    self.resolutionControl = [[UISegmentedControl alloc] initWithItems:@[@"1x", @"2x", @"3x"]];
+    self.resolutionControl.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.resolutionControl addTarget:self action:@selector(onResolutionChanged) forControlEvents:UIControlEventValueChanged];
+
+    UILabel* validationLabel = [[UILabel alloc] init];
+    validationLabel.translatesAutoresizingMaskIntoConstraints = NO;
+    validationLabel.textColor = [UIColor colorWithRed:0.86 green:0.91 blue:0.99 alpha:1.0];
+    validationLabel.font = [UIFont fontWithName:@"AvenirNext-Medium" size:14.0] ?: [UIFont systemFontOfSize:14.0 weight:UIFontWeightMedium];
+    validationLabel.text = @"Validation Layers";
+
+    self.validationSwitch = [[UISwitch alloc] init];
+    self.validationSwitch.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.validationSwitch addTarget:self action:@selector(onValidationChanged)
+                    forControlEvents:UIControlEventValueChanged];
+
+    UIStackView* validationRow = [[UIStackView alloc] initWithArrangedSubviews:@[validationLabel, self.validationSwitch]];
+    validationRow.translatesAutoresizingMaskIntoConstraints = NO;
+    validationRow.axis = UILayoutConstraintAxisHorizontal;
+    validationRow.spacing = 12.0;
+
+    UIView* graphicsCard = [[UIView alloc] init];
+    graphicsCard.translatesAutoresizingMaskIntoConstraints = NO;
+    graphicsCard.backgroundColor = [UIColor colorWithRed:0.11 green:0.14 blue:0.2 alpha:1.0];
+    graphicsCard.layer.cornerRadius = 12.0;
+
+    UIStackView* graphicsStack = [[UIStackView alloc] initWithArrangedSubviews:@[
+        graphicsTitleLabel,
+        self.rendererControl,
+        self.resolutionControl,
+        validationRow,
+    ]];
+    graphicsStack.translatesAutoresizingMaskIntoConstraints = NO;
+    graphicsStack.axis = UILayoutConstraintAxisVertical;
+    graphicsStack.spacing = 10.0;
+
+    [graphicsCard addSubview:graphicsStack];
+    [NSLayoutConstraint activateConstraints:@[
+        [graphicsStack.leadingAnchor constraintEqualToAnchor:graphicsCard.leadingAnchor constant:12.0],
+        [graphicsStack.trailingAnchor constraintEqualToAnchor:graphicsCard.trailingAnchor constant:-12.0],
+        [graphicsStack.topAnchor constraintEqualToAnchor:graphicsCard.topAnchor constant:12.0],
+        [graphicsStack.bottomAnchor constraintEqualToAnchor:graphicsCard.bottomAnchor constant:-12.0],
+    ]];
 
     self.logEndpointField = [[UITextField alloc] init];
     self.logEndpointField.translatesAutoresizingMaskIntoConstraints = NO;
@@ -201,13 +347,13 @@ static NSArray<NSString*>* EdenSupportedGameExtensions(void) {
     runThreadRow.spacing = 12.0;
     runThreadRow.distribution = UIStackViewDistributionFill;
 
-    UIButton* startButton = [UIButton buttonWithType:UIButtonTypeSystem];
-    startButton.translatesAutoresizingMaskIntoConstraints = NO;
-    [startButton setTitle:@"Start" forState:UIControlStateNormal];
-    [startButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
-    startButton.backgroundColor = [UIColor colorWithRed:0.0 green:0.56 blue:0.38 alpha:1.0];
-    startButton.layer.cornerRadius = 10.0;
-    [startButton addTarget:self action:@selector(onStartTapped) forControlEvents:UIControlEventTouchUpInside];
+    self.startButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    self.startButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [self.startButton setTitle:@"Start" forState:UIControlStateNormal];
+    [self.startButton setTitleColor:[UIColor whiteColor] forState:UIControlStateNormal];
+    self.startButton.backgroundColor = [UIColor colorWithRed:0.0 green:0.56 blue:0.38 alpha:1.0];
+    self.startButton.layer.cornerRadius = 10.0;
+    [self.startButton addTarget:self action:@selector(onStartTapped) forControlEvents:UIControlEventTouchUpInside];
 
     UIButton* stopButton = [UIButton buttonWithType:UIButtonTypeSystem];
     stopButton.translatesAutoresizingMaskIntoConstraints = NO;
@@ -232,7 +378,7 @@ static NSArray<NSString*>* EdenSupportedGameExtensions(void) {
     self.statusLabel.textColor = [UIColor colorWithRed:0.72 green:0.8 blue:0.92 alpha:1.0];
     self.statusLabel.text = self.viewModel.statusText;
 
-    UIStackView* buttonRow = [[UIStackView alloc] initWithArrangedSubviews:@[startButton, stopButton, refreshButton]];
+    UIStackView* buttonRow = [[UIStackView alloc] initWithArrangedSubviews:@[self.startButton, stopButton, refreshButton]];
     buttonRow.translatesAutoresizingMaskIntoConstraints = NO;
     buttonRow.axis = UILayoutConstraintAxisHorizontal;
     buttonRow.spacing = 10.0;
@@ -240,9 +386,12 @@ static NSArray<NSString*>* EdenSupportedGameExtensions(void) {
 
     UIStackView* stack = [[UIStackView alloc] initWithArrangedSubviews:@[
         heroCard,
-        importRow,
+        self.setupStatusLabel,
+        setupRow1,
+        setupRow2,
         self.gamesTableView,
         self.selectedGameLabel,
+        graphicsCard,
         logEndpointRow,
         runThreadRow,
         buttonRow,
@@ -260,18 +409,30 @@ static NSArray<NSString*>* EdenSupportedGameExtensions(void) {
         [stack.topAnchor constraintEqualToAnchor:contentView.topAnchor constant:16.0],
         [stack.bottomAnchor constraintEqualToAnchor:contentView.bottomAnchor constant:-20.0],
         [self.gamesTableView.heightAnchor constraintEqualToConstant:280.0],
-        [importButton.heightAnchor constraintEqualToConstant:44.0],
+        [importKeysButton.heightAnchor constraintEqualToConstant:44.0],
+        [importFirmwareButton.heightAnchor constraintEqualToConstant:44.0],
+        [importGameButton.heightAnchor constraintEqualToConstant:44.0],
         [scanButton.heightAnchor constraintEqualToConstant:44.0],
-        [startButton.heightAnchor constraintEqualToConstant:44.0],
+        [self.startButton.heightAnchor constraintEqualToConstant:44.0],
         [stopButton.heightAnchor constraintEqualToConstant:44.0],
         [refreshButton.heightAnchor constraintEqualToConstant:44.0],
     ]];
 
+    [self applySavedGraphicsSettings];
+    [self refreshSetupState];
     [self reloadGameLibraryAndRestoreSelection];
 }
 
 - (void)onStartTapped {
     NSString* path = [self.selectedGamePath stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (!self.keysInstalled) {
+        self.statusLabel.text = @"Import keys dulu sebelum start game.";
+        return;
+    }
+    if (!self.firmwareInstalled) {
+        self.statusLabel.text = @"Import firmware dulu sebelum start game.";
+        return;
+    }
     if (path.length == 0) {
         self.statusLabel.text = @"Pilih game terlebih dahulu dari library.";
         return;
@@ -298,20 +459,113 @@ static NSArray<NSString*>* EdenSupportedGameExtensions(void) {
 }
 
 - (void)onRefreshTapped {
+    [self refreshSetupState];
     [self.viewModel refreshState];
 }
 
-- (void)onImportTapped {
-    UIDocumentPickerViewController* picker =
-        [[UIDocumentPickerViewController alloc] initWithDocumentTypes:@[@"public.item"]
-                                                               inMode:UIDocumentPickerModeImport];
-    picker.delegate = self;
-    picker.modalPresentationStyle = UIModalPresentationFormSheet;
-    [self presentViewController:picker animated:YES completion:nil];
+- (void)onImportKeysTapped {
+    [self presentImporterForMode:EdenImportModeKeys allowsMultiple:YES];
+}
+
+- (void)onImportFirmwareTapped {
+    [self presentImporterForMode:EdenImportModeFirmware allowsMultiple:NO];
+}
+
+- (void)onImportGameTapped {
+    [self presentImporterForMode:EdenImportModeGame allowsMultiple:NO];
 }
 
 - (void)onScanTapped {
     [self reloadGameLibraryAndRestoreSelection];
+    [self refreshSetupState];
+}
+
+- (void)onRendererChanged {
+    NSInteger backend = EdenRendererIndexToValue(self.rendererControl.selectedSegmentIndex);
+    [self.viewModel setRendererBackendValue:backend];
+    [[NSUserDefaults standardUserDefaults] setInteger:backend forKey:EdenGraphicsRendererDefaultsKey];
+}
+
+- (void)onResolutionChanged {
+    NSInteger resolution = EdenResolutionIndexToValue(self.resolutionControl.selectedSegmentIndex);
+    [self.viewModel setResolutionSetupValue:resolution];
+    [[NSUserDefaults standardUserDefaults] setInteger:resolution forKey:EdenGraphicsResolutionDefaultsKey];
+}
+
+- (void)onValidationChanged {
+    [self.viewModel setValidationLayersEnabled:self.validationSwitch.isOn];
+    [[NSUserDefaults standardUserDefaults] setBool:self.validationSwitch.isOn
+                                            forKey:EdenGraphicsValidationDefaultsKey];
+}
+
+- (void)applySavedGraphicsSettings {
+    NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
+    NSInteger rendererValue = [defaults integerForKey:EdenGraphicsRendererDefaultsKey];
+    if (rendererValue == 0) {
+        rendererValue = 1;
+    }
+    NSInteger resolutionValue = [defaults integerForKey:EdenGraphicsResolutionDefaultsKey];
+    if (resolutionValue == 0) {
+        resolutionValue = 3;
+    }
+    BOOL validationEnabled = [defaults boolForKey:EdenGraphicsValidationDefaultsKey];
+
+    self.rendererControl.selectedSegmentIndex = EdenRendererValueToIndex(rendererValue);
+    self.resolutionControl.selectedSegmentIndex = EdenResolutionValueToIndex(resolutionValue);
+    self.validationSwitch.on = validationEnabled;
+
+    [self.viewModel setRendererBackendValue:rendererValue];
+    [self.viewModel setResolutionSetupValue:resolutionValue];
+    [self.viewModel setValidationLayersEnabled:validationEnabled];
+}
+
+- (void)refreshSetupState {
+    EdenIOSSetupBridgeResult* status = [EdenIOSSetupBridge status];
+    self.keysInstalled = status.keysInstalled;
+    self.firmwareInstalled = status.firmwareInstalled;
+
+    NSString* keysText = self.keysInstalled ? @"ready" : @"missing";
+    NSString* firmwareText = self.firmwareInstalled ? @"ready" : @"missing";
+    self.setupStatusLabel.text = [NSString stringWithFormat:@"Setup status: keys=%@ | firmware=%@", keysText, firmwareText];
+
+    self.startButton.enabled = self.keysInstalled && self.firmwareInstalled && self.selectedGamePath.length > 0;
+    self.startButton.alpha = self.startButton.enabled ? 1.0 : 0.5;
+}
+
+- (void)presentImporterForMode:(EdenImportMode)mode allowsMultiple:(BOOL)allowsMultiple {
+    self.importMode = mode;
+
+    UIDocumentPickerViewController* picker = nil;
+    if (@available(iOS 14.0, *)) {
+#if __has_include(<UniformTypeIdentifiers/UniformTypeIdentifiers.h>)
+        NSMutableArray* contentTypes = [NSMutableArray array];
+        if (mode == EdenImportModeFirmware) {
+            [contentTypes addObject:UTTypeFolder];
+            [contentTypes addObject:UTTypeZIPArchive];
+            [contentTypes addObject:UTTypeItem];
+        } else {
+            [contentTypes addObject:UTTypeItem];
+        }
+        picker = [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:contentTypes
+                                                                               asCopy:YES];
+#endif
+    }
+
+    if (picker == nil) {
+        NSArray<NSString*>* documentTypes =
+            mode == EdenImportModeFirmware
+                ? @[@"public.folder", @"public.zip-archive", @"public.item"]
+                : @[@"public.item"];
+        UIDocumentPickerMode pickerMode =
+            mode == EdenImportModeFirmware ? UIDocumentPickerModeOpen : UIDocumentPickerModeImport;
+        picker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:documentTypes
+                                                                         inMode:pickerMode];
+    }
+
+    picker.delegate = self;
+    picker.allowsMultipleSelection = allowsMultiple;
+    picker.modalPresentationStyle = UIModalPresentationFormSheet;
+    [self presentViewController:picker animated:YES completion:nil];
 }
 
 - (NSURL*)gamesDirectoryURL {
@@ -378,6 +632,7 @@ static NSArray<NSString*>* EdenSupportedGameExtensions(void) {
         self.selectedGamePath = @"";
         self.selectedGameLabel.text = @"Game terpilih: belum ada (gunakan Import Game)";
         self.statusLabel.text = @"Library kosong. Import file .nsp/.xci terlebih dahulu.";
+        [self refreshSetupState];
     }
 }
 
@@ -393,29 +648,43 @@ static NSArray<NSString*>* EdenSupportedGameExtensions(void) {
                                          animated:NO
                                    scrollPosition:UITableViewScrollPositionNone];
     }
+    [self refreshSetupState];
 }
 
-#pragma mark - UIDocumentPickerDelegate
+- (NSURL*)keysImportStagingDirectoryURL {
+    NSURL* documentsURL = [[[NSFileManager defaultManager] URLsForDirectory:NSDocumentDirectory
+                                                                   inDomains:NSUserDomainMask] firstObject];
+    NSURL* staging = [[documentsURL URLByAppendingPathComponent:@"Imports" isDirectory:YES]
+        URLByAppendingPathComponent:@"Keys" isDirectory:YES];
+    [[NSFileManager defaultManager] removeItemAtURL:staging error:nil];
+    [[NSFileManager defaultManager] createDirectoryAtURL:staging
+                             withIntermediateDirectories:YES
+                                              attributes:nil
+                                                   error:nil];
+    return staging;
+}
 
-- (void)documentPicker:(UIDocumentPickerViewController*)controller
-didPickDocumentsAtURLs:(NSArray<NSURL*>*)urls {
-    (void)controller;
-    if (urls.count == 0) {
-        return;
+- (BOOL)copyIncomingURL:(NSURL*)sourceURL toDestination:(NSURL*)destinationURL error:(NSError**)error {
+    BOOL hasScope = [sourceURL startAccessingSecurityScopedResource];
+    [[NSFileManager defaultManager] removeItemAtURL:destinationURL error:nil];
+    BOOL ok = [[NSFileManager defaultManager] copyItemAtURL:sourceURL toURL:destinationURL error:error];
+    if (hasScope) {
+        [sourceURL stopAccessingSecurityScopedResource];
     }
+    return ok;
+}
 
-    NSURL* pickedURL = urls.firstObject;
+- (void)handleGameImportWithURL:(NSURL*)pickedURL {
     if (![self isSupportedGameURL:pickedURL]) {
         self.statusLabel.text = @"Format file tidak didukung. Gunakan .nsp/.xci/.nca/.nro.";
         return;
     }
 
     NSURL* destinationURL = [[self gamesDirectoryURL] URLByAppendingPathComponent:[pickedURL lastPathComponent]];
-    [[NSFileManager defaultManager] removeItemAtURL:destinationURL error:nil];
     NSError* copyError = nil;
-    if (![[NSFileManager defaultManager] copyItemAtURL:pickedURL toURL:destinationURL error:&copyError]) {
+    if (![self copyIncomingURL:pickedURL toDestination:destinationURL error:&copyError]) {
         NSString* detail = copyError.localizedDescription ?: @"unknown";
-        self.statusLabel.text = [NSString stringWithFormat:@"Import gagal: %@", detail];
+        self.statusLabel.text = [NSString stringWithFormat:@"Import game gagal: %@", detail];
         return;
     }
 
@@ -428,6 +697,90 @@ didPickDocumentsAtURLs:(NSArray<NSURL*>*)urls {
             [self setSelectedGamePath:pickedPath tableIndex:idx];
             break;
         }
+    }
+}
+
+- (void)handleKeysImportWithURLs:(NSArray<NSURL*>*)urls {
+    NSURL* stagingURL = [self keysImportStagingDirectoryURL];
+    NSString* prodPath = @"";
+
+    for (NSURL* sourceURL in urls) {
+        NSNumber* isDirectory = nil;
+        [sourceURL getResourceValue:&isDirectory forKey:NSURLIsDirectoryKey error:nil];
+        if (isDirectory.boolValue) {
+            continue;
+        }
+
+        NSURL* destinationURL = [stagingURL URLByAppendingPathComponent:[sourceURL lastPathComponent]];
+        NSError* copyError = nil;
+        if (![self copyIncomingURL:sourceURL toDestination:destinationURL error:&copyError]) {
+            NSString* detail = copyError.localizedDescription ?: @"unknown";
+            self.statusLabel.text = [NSString stringWithFormat:@"Import keys gagal: %@", detail];
+            return;
+        }
+
+        NSString* lowerName = [[destinationURL lastPathComponent] lowercaseString];
+        if ([lowerName isEqualToString:@"prod.keys"]) {
+            prodPath = [destinationURL path];
+        }
+    }
+
+    if (prodPath.length == 0) {
+        self.statusLabel.text = @"prod.keys belum ditemukan. Pilih file prod.keys saat import keys.";
+        return;
+    }
+
+    EdenIOSSetupBridgeResult* result = [EdenIOSSetupBridge installKeysFromProdKeysPath:prodPath];
+    self.statusLabel.text = [NSString stringWithFormat:@"Import keys: %@", result.report];
+    [self refreshSetupState];
+}
+
+- (void)handleFirmwareImportWithURL:(NSURL*)sourceURL {
+    BOOL hasScope = [sourceURL startAccessingSecurityScopedResource];
+    NSString* sourcePath = [sourceURL path];
+    if (hasScope) {
+        [sourceURL stopAccessingSecurityScopedResource];
+    }
+
+    if (sourcePath.length == 0) {
+        self.statusLabel.text = @"Import firmware gagal: path kosong.";
+        return;
+    }
+
+    EdenIOSSetupBridgeResult* result = [EdenIOSSetupBridge installFirmwareFromPath:sourcePath
+                                                                          recursive:YES];
+    if (!result.success && [[[sourceURL pathExtension] lowercaseString] isEqualToString:@"nca"]) {
+        NSString* parentPath = [[sourceURL URLByDeletingLastPathComponent] path];
+        result = [EdenIOSSetupBridge installFirmwareFromPath:parentPath recursive:YES];
+    }
+
+    self.statusLabel.text = [NSString stringWithFormat:@"Import firmware: %@", result.report];
+    if (!result.success) {
+        self.statusLabel.text = [self.statusLabel.text stringByAppendingString:@" (gunakan folder firmware berisi file .nca)"];
+    }
+    [self refreshSetupState];
+}
+
+#pragma mark - UIDocumentPickerDelegate
+
+- (void)documentPicker:(UIDocumentPickerViewController*)controller
+didPickDocumentsAtURLs:(NSArray<NSURL*>*)urls {
+    (void)controller;
+    if (urls.count == 0) {
+        return;
+    }
+
+    switch (self.importMode) {
+    case EdenImportModeKeys:
+        [self handleKeysImportWithURLs:urls];
+        break;
+    case EdenImportModeFirmware:
+        [self handleFirmwareImportWithURL:urls.firstObject];
+        break;
+    case EdenImportModeGame:
+    default:
+        [self handleGameImportWithURL:urls.firstObject];
+        break;
     }
 }
 

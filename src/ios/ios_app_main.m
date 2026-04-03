@@ -12,6 +12,9 @@
 static NSString* const EdenLiveLogEndpointDefaultsKey = @"EdenLiveLogEndpoint";
 static NSString* const EdenLiveUpdateURLDefaultsKey = @"EdenLiveUpdateURL";
 static NSString* const EdenLastGamePathDefaultsKey = @"EdenLastGamePath";
+static NSString* const EdenGraphicsRendererDefaultsKey = @"EdenGraphicsRenderer";
+static NSString* const EdenGraphicsResolutionDefaultsKey = @"EdenGraphicsResolution";
+static NSString* const EdenGraphicsValidationDefaultsKey = @"EdenGraphicsValidation";
 static NSString* const EdenDefaultLiveUpdateURL = @"https://api.github.com/repos/Runiajahnih900/Eden-IOS/releases/latest";
 
 static NSTimeInterval const EdenHeartbeatIntervalSeconds = 12.0;
@@ -263,10 +266,23 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
     }
 
     [EdenIOSRuntimeBridge setRemoteDebugLogEndpoint:[self savedLiveLogEndpoint]];
+    NSUserDefaults* defaults = [NSUserDefaults standardUserDefaults];
+    NSInteger rendererBackend = [defaults integerForKey:EdenGraphicsRendererDefaultsKey];
+    if (rendererBackend == 0) {
+        rendererBackend = 1;
+    }
+    NSInteger resolutionSetup = [defaults integerForKey:EdenGraphicsResolutionDefaultsKey];
+    if (resolutionSetup == 0) {
+        resolutionSetup = 3;
+    }
+    BOOL enableValidationLayers = [defaults boolForKey:EdenGraphicsValidationDefaultsKey];
+
     EdenIOSRuntimeBridgeResult* result = [EdenIOSRuntimeBridge startWithRequestJIT:NO
-                                                           enableValidationLayers:NO
+                                                           enableValidationLayers:enableValidationLayers
                                                              startExecutionThread:YES
-                                                                         gamePath:selectedGamePath];
+                                                                         gamePath:selectedGamePath
+                                                                  rendererBackend:rendererBackend
+                                                                   resolutionSetup:resolutionSetup];
     self.statusLabel.text = [NSString stringWithFormat:@"Status runtime: %@ (running=%@)", result.report, result.running ? @"yes" : @"no"];
     NSDictionary* extra = @{
         @"running": @(result.running),
