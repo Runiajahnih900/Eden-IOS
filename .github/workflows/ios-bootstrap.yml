@@ -196,6 +196,16 @@ jobs:
             echo "::error title=Build failure::$first_build_error"
           fi
 
+          if [ -f build-ios/build.log ]; then
+            linker_snippet=$(awk '
+              /Undefined symbols for architecture/ {capture=1;left=12}
+              capture && left>0 {print; left--; if (left==0) capture=0}
+            ' build-ios/build.log | tr '\n' '|' | sed 's/|$//')
+            if [ -n "$linker_snippet" ]; then
+              echo "::error title=Linker symbols::$linker_snippet"
+            fi
+          fi
+
           echo "::group::Reconfigure with --debug-find"
           mkdir -p build-ios-debug
           cmake -S . -B build-ios-debug \

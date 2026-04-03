@@ -1081,3 +1081,13 @@ Files:
 - Keeps identical UIKit bootstrap behavior while removing ObjC++ link/runtime surface from
   IPA packaging path.
 
+### 78) Force Objective-C toolchain path for iOS app linking
+File:
+- `src/ios/CMakeLists.txt`
+
+- Enabled `OBJC` language explicitly for iOS subtree.
+- Set `eden-ios-app` target properties:
+  - `LINKER_LANGUAGE OBJC`
+  - `XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES`
+- Purpose: resolve unresolved ObjC runtime/link symbols by using Objective-C link path deterministically.
+
