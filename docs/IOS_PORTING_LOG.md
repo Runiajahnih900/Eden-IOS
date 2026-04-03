@@ -1254,3 +1254,17 @@ File:
 - Purpose: address run #78 linker failure on iOS app link stage:
   - `ld: library 'zstd' not found`.
 
+### 92) Add iOS FFmpeg decode stubs and skip FFmpeg archive link on iOS
+Files:
+- `src/video_core/host1x/ffmpeg/ffmpeg.cpp`
+- `src/video_core/CMakeLists.txt`
+
+- Added `YUZU_PLATFORM_IOS` stub implementation path in FFmpeg decode wrapper:
+  - `DecodeApi` and related FFmpeg wrapper classes now return safe no-op/false results on iOS bootstrap path.
+  - avoids runtime link dependency on libav decode symbols for bootstrap packaging builds.
+- Updated `video_core` link wiring for iOS:
+  - keep FFmpeg include directories for compile compatibility.
+  - skip linking `${FFmpeg_LIBRARIES}` and `${FFmpeg_LDFLAGS}` when `PLATFORM_IOS`.
+- Purpose: address run #79 linker error caused by macOS FFmpeg static archives being linked into iOS target:
+  - `building for 'iOS' ... object file ... built for 'macOS'`.
+

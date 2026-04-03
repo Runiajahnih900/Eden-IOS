@@ -332,8 +332,10 @@ endif()
 
 target_include_directories(video_core PRIVATE ${FFmpeg_INCLUDE_DIR})
 
-target_link_libraries(video_core PRIVATE ${FFmpeg_LIBRARIES})
-target_link_options(video_core PRIVATE ${FFmpeg_LDFLAGS})
+if (NOT PLATFORM_IOS)
+    target_link_libraries(video_core PRIVATE ${FFmpeg_LIBRARIES})
+    target_link_options(video_core PRIVATE ${FFmpeg_LDFLAGS})
+endif()
 
 add_dependencies(video_core host_shaders)
 target_include_directories(video_core PRIVATE ${HOST_SHADERS_INCLUDE})

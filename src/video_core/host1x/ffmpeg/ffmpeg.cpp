@@ -23,6 +23,75 @@ extern "C" {
 
 namespace FFmpeg {
 
+#if defined(YUZU_PLATFORM_IOS)
+
+Packet::Packet(std::span<const u8>) {}
+
+Packet::~Packet() = default;
+
+Frame::Frame() {}
+
+Frame::~Frame() = default;
+
+Decoder::Decoder(Tegra::Host1x::NvdecCommon::VideoCodec) {}
+
+bool Decoder::SupportsDecodingOnDevice(AVPixelFormat*, AVHWDeviceType) const {
+    return false;
+}
+
+std::vector<AVHWDeviceType> HardwareContext::GetSupportedDeviceTypes() {
+    return {};
+}
+
+HardwareContext::~HardwareContext() = default;
+
+bool HardwareContext::InitializeForDecoder(DecoderContext&, const Decoder&) {
+    return false;
+}
+
+bool HardwareContext::InitializeWithType(AVHWDeviceType) {
+    return false;
+}
+
+DecoderContext::DecoderContext(const Decoder& decoder) : m_decoder{decoder} {}
+
+DecoderContext::~DecoderContext() = default;
+
+void DecoderContext::InitializeHardwareDecoder(const HardwareContext&, AVPixelFormat) {}
+
+bool DecoderContext::OpenContext(const Decoder&) {
+    return false;
+}
+
+bool DecoderContext::SendPacket(const Packet&) {
+    return false;
+}
+
+std::shared_ptr<Frame> DecoderContext::ReceiveFrame() {
+    return {};
+}
+
+void DecodeApi::Reset() {
+    m_hardware_context.reset();
+    m_decoder_context.reset();
+    m_decoder.reset();
+}
+
+bool DecodeApi::Initialize(Tegra::Host1x::NvdecCommon::VideoCodec) {
+    this->Reset();
+    return false;
+}
+
+bool DecodeApi::SendPacket(std::span<const u8>) {
+    return false;
+}
+
+std::shared_ptr<Frame> DecodeApi::ReceiveFrame() {
+    return {};
+}
+
+#else
+
 namespace {
 
 constexpr AVPixelFormat PreferredGpuFormat = AV_PIX_FMT_NV12;
@@ -311,5 +380,7 @@ std::shared_ptr<Frame> DecodeApi::ReceiveFrame() {
     // Receive raw frame from decoder.
     return m_decoder_context->ReceiveFrame();
 }
+
+#endif
 
 }
