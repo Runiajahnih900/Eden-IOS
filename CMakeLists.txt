@@ -461,10 +461,18 @@ endif()
 AddJsonPackage(fmt)
 
 # lz4
+if (PLATFORM_IOS)
+    set(lz4_FORCE_BUNDLED ON CACHE BOOL "Force bundled lz4 on iOS" FORCE)
+endif()
+
 AddJsonPackage(lz4)
 
-if (lz4_ADDED)
-    add_library(lz4::lz4 ALIAS lz4_static)
+if (NOT TARGET lz4::lz4)
+    if (TARGET lz4_static)
+        add_library(lz4::lz4 ALIAS lz4_static)
+    elseif (TARGET lz4)
+        add_library(lz4::lz4 ALIAS lz4)
+    endif()
 endif()
 
 # zstd

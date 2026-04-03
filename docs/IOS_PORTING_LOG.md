@@ -1230,3 +1230,15 @@ Files:
   - emit explicit fatal configure message if none exist.
 - Purpose: resolve run #76 configure failure at `src/shader_recompiler/CMakeLists.txt:246` while keeping iOS on bundled SPIRV target path.
 
+### 90) Force bundled lz4 target path for iOS runtime-linked app build
+File:
+- `CMakeLists.txt`
+
+- Added iOS-specific force-bundled setting for lz4:
+  - `lz4_FORCE_BUNDLED=ON`.
+- Reworked `lz4::lz4` alias creation to use target-existence fallback rather than only `lz4_ADDED`:
+  - prefer `lz4_static`
+  - fallback `lz4` when present.
+- Purpose: address run #77 linker failure on iOS app link stage:
+  - `ld: library 'lz4' not found`.
+
