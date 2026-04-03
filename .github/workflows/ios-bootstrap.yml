@@ -196,7 +196,10 @@ jobs:
           echo "::group::Build hard errors (short)"
           if [ -f build-ios/build.log ]; then
             grep -nEi "Undefined symbols for architecture|symbol\(s\) not found|framework not found|library not found|duplicate symbol|error:|fatal error:|undefined reference|ld: error|ninja: build stopped|subcommand failed" build-ios/build.log | tail -n 120 || true
-            first_build_error=$(grep -nEi "Undefined symbols for architecture|symbol\(s\) not found|framework not found|library not found|duplicate symbol|undefined reference|ld: error|fatal error:|error:" build-ios/build.log | head -n 1 || true)
+            first_build_error=$(grep -nE "^Undefined symbols for architecture|symbol\(s\) not found|^[[:space:]]*ld: |clang: error: linker command failed|collect2: error: ld returned|ninja: build stopped|ninja: error:" build-ios/build.log | head -n 1 || true)
+            if [ -z "$first_build_error" ]; then
+              first_build_error=$(grep -nE ":[0-9]+:[0-9]+: (fatal )?error:|: error:|fatal error:" build-ios/build.log | head -n 1 || true)
+            fi
             {
               echo "### Build hard errors"
               echo '```text'
@@ -206,7 +209,7 @@ jobs:
               echo "### Build root cause snippet"
               echo '```text'
               awk '
-                /Undefined symbols for architecture|symbol\(s\) not found|framework not found|library not found|duplicate symbol|fatal error:|error:|undefined reference|ld: error/ {capture=1;left=20}
+                /Undefined symbols for architecture|symbol\(s\) not found|^[[:space:]]*ld: |clang: error: linker command failed|collect2: error: ld returned|ninja: build stopped|ninja: error:|:[0-9]+:[0-9]+: (fatal )?error:|: error:|fatal error:/ {capture=1;left=20}
                 capture && left>0 {print; left--; if (left==0) capture=0}
               ' build-ios/build.log | head -n 140 || true
               echo '```'
@@ -233,25 +236,26 @@ jobs:
               echo "::error title=Linker symbols::$linker_snippet"
             fi
 
-            first_linker_line=$(grep -nE "Undefined symbols for architecture|symbol\(s\) not found|ld: error|clang: error: linker command failed" build-ios/build.log | head -n 1 | cut -d: -f1 || true)
-            if [ -n "$first_linker_line" ]; then
-              start_line=$((first_linker_line-40))
-              if [ "$start_line" -lt 1 ]; then
-                start_line=1
-              fi
-              end_line=$((first_linker_line+25))
-              linker_context=$(sed -n "${start_line},${end_line}p" build-ios/build.log | tr '\n' '|' | sed 's/|$//' | cut -c1-7000)
-              if [ -n "$linker_context" ]; then
-                echo "::error title=Linker context::$linker_context"
-              fi
-
+            linker_key_lines=$(grep -nE "^Undefined symbols for architecture|symbol\(s\) not found|^[[:space:]]*ld: |clang: error: linker command failed|collect2: error: ld returned|ninja: build stopped|ninja: error:" build-ios/build.log | tail -n 40 || true)
+            if [ -n "$linker_key_lines" ]; then
+              linker_context=$(printf '%s\n' "$linker_key_lines" | tr '\n' '|' | sed 's/|$//' | cut -c1-7000)
+              echo "::error title=Linker context::$linker_context"
               {
                 echo "### Linker context"
                 echo '```text'
-                sed -n "${start_line},${end_line}p" build-ios/build.log || true
+                printf '%s\n' "$linker_key_lines"
                 echo '```'
                 echo
               } >> "$GITHUB_STEP_SUMMARY"
+            fi
+
+            first_undefined_symbol=$(awk '
+              /Undefined symbols for architecture/ {capture=1; next}
+              capture && /^[[:space:]]+"/ {print; exit}
+              capture && /^ld: |^clang: error:/ {capture=0}
+            ' build-ios/build.log | head -n 1 || true)
+            if [ -n "$first_undefined_symbol" ]; then
+              echo "::error title=First undefined symbol::$first_undefined_symbol"
             fi
           fi
 

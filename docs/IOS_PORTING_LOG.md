@@ -1168,3 +1168,18 @@ File:
   - `GITHUB_STEP_SUMMARY` (human-readable snippet)
 - Purpose: unblock autonomous fix loops when artifact/log download requires authentication.
 
+### 85) Filter linker annotations to actionable lines (avoid compile-command noise)
+File:
+- `.github/workflows/ios-bootstrap.yml`
+
+- Refined first-error extraction to prioritize real linker signatures before generic compiler errors.
+- Added linker-context extraction based on focused key lines instead of wide raw log windows:
+  - `Undefined symbols for architecture`
+  - `symbol(s) not found`
+  - `ld:` lines
+  - `clang: error: linker command failed`
+  - `collect2: error: ld returned`
+  - `ninja: build stopped` / `ninja: error:`
+- Added explicit `First undefined symbol` annotation from the undefined-symbol block when available.
+- Purpose: ensure public annotations expose root-cause linker data directly (not long ccache compile command lines), enabling faster autonomous fix loops.
+
