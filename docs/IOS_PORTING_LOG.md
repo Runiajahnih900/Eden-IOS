@@ -1296,3 +1296,15 @@ File:
   - `First failed command` from the first `FAILED:` line in `build-ios/build.log`.
 - Purpose: improve root-cause visibility when builds fail without explicit `ld:`/`error:` lines (as observed in run #81 annotations).
 
+### 95) Add one-time configure retry for transient CPM download failures
+File:
+- `.github/workflows/ios-bootstrap.yml`
+
+- Refactored configure step into `run_configure()` helper function.
+- Added single retry path when first configure attempt fails:
+  - clear `build-ios/_deps/vulkanutilitylibraries-*`
+  - rerun configure once
+  - keep full output in `build-ios/configure.log` via existing `tee` logging.
+- Purpose: mitigate flaky dependency-download failures seen in run #82 at
+  `vulkanutilitylibraries-populate` download stage without requiring manual rerun.
+
