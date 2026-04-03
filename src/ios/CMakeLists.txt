@@ -15,6 +15,7 @@ add_library(yuzu-ios-bootstrap STATIC
 
 if (PLATFORM_IOS)
     target_sources(yuzu-ios-bootstrap PRIVATE
+        ios_vma_impl.cpp
         ios_bootstrap_objc_bridge.h
         ios_bootstrap_objc_bridge.mm
         ios_runtime_objc_bridge.h

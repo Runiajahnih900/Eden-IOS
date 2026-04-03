@@ -1268,3 +1268,19 @@ Files:
 - Purpose: address run #79 linker error caused by macOS FFmpeg static archives being linked into iOS target:
   - `building for 'iOS' ... object file ... built for 'macOS'`.
 
+### 93) Fix iOS undefined symbols for JIT loop and VulkanMemoryAllocator
+Files:
+- `src/core/hle/service/services.cpp`
+- `src/ios/CMakeLists.txt`
+- `src/ios/ios_vma_impl.cpp`
+
+- Guarded JIT service registration out of iOS path in service loop bootstrap:
+  - skip `{ "jit", &JIT::LoopProcess }` when `YUZU_PLATFORM_IOS` is defined.
+  - aligns runtime service registration with core iOS build path where JIT sources are excluded.
+- Added dedicated iOS VMA implementation translation unit:
+  - `ios_vma_impl.cpp` defines `VMA_IMPLEMENTATION` and includes `video_core/vulkan_common/vma.h`.
+  - wired into `yuzu-ios-bootstrap` iOS-only sources.
+- Purpose: address run #80 linker errors for:
+  - `Service::JIT::LoopProcess(Core::System&)`
+  - `_vma*` symbols (e.g. `vmaAllocateMemory`).
+

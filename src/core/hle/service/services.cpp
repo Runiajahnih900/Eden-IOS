@@ -87,7 +87,9 @@ Services::Services(std::shared_ptr<SM::ServiceManager>& sm, Core::System& system
     for (auto const& e : std::vector<std::pair<std::string_view, void (*)(Core::System&)>>{
         {"audio",      &Audio::LoopProcess},
         {"FS",         &FileSystem::LoopProcess},
+#if !defined(YUZU_PLATFORM_IOS)
         {"jit",        &JIT::LoopProcess},
+#endif
         {"ldn",        &LDN::LoopProcess},
         {"Loader",     &LDR::LoopProcess},
         {"nvservices", &Nvidia::LoopProcess},
