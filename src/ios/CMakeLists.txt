@@ -25,7 +25,17 @@ if (PLATFORM_IOS)
         ios_runtime_demo_controller.mm)
 endif()
 
-target_link_libraries(yuzu-ios-bootstrap PUBLIC common core frontend_common)
+target_link_libraries(yuzu-ios-bootstrap PUBLIC
+    common
+    core
+    input_common
+    frontend_common
+    video_core
+    Threads::Threads)
+
+if (PLATFORM_IOS)
+    target_link_libraries(yuzu-ios-bootstrap PRIVATE ${PLATFORM_LIBRARIES})
+endif()
 
 if (APPLE)
     target_link_libraries(yuzu-ios-bootstrap PRIVATE "-framework Foundation")

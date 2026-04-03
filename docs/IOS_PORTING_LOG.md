@@ -1183,3 +1183,15 @@ File:
 - Added explicit `First undefined symbol` annotation from the undefined-symbol block when available.
 - Purpose: ensure public annotations expose root-cause linker data directly (not long ccache compile command lines), enabling faster autonomous fix loops.
 
+### 86) Expand iOS bootstrap link dependency closure to match runtime frontend needs
+File:
+- `src/ios/CMakeLists.txt`
+
+- Extended `yuzu-ios-bootstrap` link set beyond `common/core/frontend_common` to include:
+  - `input_common`
+  - `video_core`
+  - `Threads::Threads`
+- Added iOS platform library propagation for bootstrap runtime target:
+  - `target_link_libraries(yuzu-ios-bootstrap PRIVATE ${PLATFORM_LIBRARIES})`
+- Purpose: reduce runtime-linked app linker failures caused by unresolved symbols that are provided by frontend/runtime support libraries but were not previously in the iOS bootstrap target link closure.
+
