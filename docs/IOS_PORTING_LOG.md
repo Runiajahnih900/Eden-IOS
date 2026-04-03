@@ -1318,3 +1318,26 @@ File:
   - `-Wno-everything`
 - Purpose: prevent strict warning policies from failing the dedicated VMA implementation translation unit (third-party `vk_mem_alloc` code path) before link-stage validation can proceed.
 
+### 97) Ship actual Play UI with game library and runtime start using selected game path
+Files:
+- `src/ios/ios_runtime_demo_controller.mm`
+- `src/ios/ios_app_main.m`
+
+- Reworked runtime demo screen into `Play` UI with emulator-oriented flow:
+  - hero header + dark themed layout
+  - `Import Game` and `Scan Ulang` actions
+  - in-app game library list from `Documents/Games`
+  - persisted selected game path (`NSUserDefaults` key `EdenLastGamePath`)
+  - runtime controls (`Start`, `Stop`, `Refresh`) bound to selected library item
+- Added document import path for game files via `UIDocumentPicker` (import mode), with extension filtering:
+  - `.nsp`, `.xci`, `.nca`, `.nro`, `.nso`, `.kip`, `.zip`, `.7z`
+- Updated app root navigation to tab-based shell when bootstrap linkage is active:
+  - `Play` tab -> `EdenIOSRuntimeDemoController`
+  - `Tools` tab -> existing live logging/update controller
+- Updated tools screen runtime start behavior:
+  - no longer starts with `gamePath=nil`
+  - reads selected path from `EdenLastGamePath`
+  - shows actionable status when no game has been chosen
+  - starts runtime thread by default on manual start
+- Purpose: address user-facing state where app UI looked like diagnostics shell only and runtime start failed due to missing game path.
+

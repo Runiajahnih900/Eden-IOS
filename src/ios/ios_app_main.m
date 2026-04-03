@@ -6,10 +6,12 @@
 #if defined(YUZU_IOS_BOOTSTRAP)
 #import "ios_bootstrap_objc_bridge.h"
 #import "ios_runtime_objc_bridge.h"
+#import "ios_runtime_demo_controller.h"
 #endif
 
 static NSString* const EdenLiveLogEndpointDefaultsKey = @"EdenLiveLogEndpoint";
 static NSString* const EdenLiveUpdateURLDefaultsKey = @"EdenLiveUpdateURL";
+static NSString* const EdenLastGamePathDefaultsKey = @"EdenLastGamePath";
 static NSString* const EdenDefaultLiveUpdateURL = @"https://api.github.com/repos/Runiajahnih900/Eden-IOS/releases/latest";
 
 static NSTimeInterval const EdenHeartbeatIntervalSeconds = 12.0;
@@ -252,16 +254,25 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
 
 - (void)onStartRuntimeNow {
 #if defined(YUZU_IOS_BOOTSTRAP)
+    NSString* selectedGamePath = [[NSUserDefaults standardUserDefaults] stringForKey:EdenLastGamePathDefaultsKey] ?: @"";
+    selectedGamePath = [selectedGamePath stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
+    if (selectedGamePath.length == 0) {
+        self.statusLabel.text = @"Status runtime: belum ada game dipilih. Buka tab Play lalu pilih game.";
+        [self sendLiveLogEvent:@"runtime_start_missing_game" report:@"no-game-selected" extra:nil];
+        return;
+    }
+
     [EdenIOSRuntimeBridge setRemoteDebugLogEndpoint:[self savedLiveLogEndpoint]];
     EdenIOSRuntimeBridgeResult* result = [EdenIOSRuntimeBridge startWithRequestJIT:NO
                                                            enableValidationLayers:NO
-                                                             startExecutionThread:NO
-                                                                         gamePath:nil];
+                                                             startExecutionThread:YES
+                                                                         gamePath:selectedGamePath];
     self.statusLabel.text = [NSString stringWithFormat:@"Status runtime: %@ (running=%@)", result.report, result.running ? @"yes" : @"no"];
     NSDictionary* extra = @{
         @"running": @(result.running),
         @"sessionID": @(result.sessionID),
         @"tickCount": @(result.tickCount),
+        @"gamePath": selectedGamePath,
     };
     [self sendLiveLogEvent:@"runtime_start" report:result.report extra:extra];
 #else
@@ -300,9 +311,11 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
                                                  name:EdenIOSRuntimeEventNotification
                                                object:nil];
 
+    NSString* selectedGamePath = [[NSUserDefaults standardUserDefaults] stringForKey:EdenLastGamePathDefaultsKey] ?: @"";
+    selectedGamePath = [selectedGamePath stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
     EdenIOSBootstrapBridgeResult* preflight = [EdenIOSBootstrapBridge prepareWithRequestJIT:NO
                                                                      enableValidationLayers:NO
-                                                                                   gamePath:nil];
+                                                                                   gamePath:selectedGamePath.length > 0 ? selectedGamePath : nil];
     NSDictionary* extra = @{
         @"ready": @(preflight.ready),
         @"onIOS": @(preflight.onIOS),
@@ -541,10 +554,28 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
     (void)launchOptions;
 
     self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
-    EdenIOSHomeController* rootViewController = [[EdenIOSHomeController alloc] init];
-    UINavigationController* navigationController =
-        [[UINavigationController alloc] initWithRootViewController:rootViewController];
-    self.window.rootViewController = navigationController;
+    EdenIOSHomeController* toolsController = [[EdenIOSHomeController alloc] init];
+    UINavigationController* toolsNav = [[UINavigationController alloc] initWithRootViewController:toolsController];
+    toolsNav.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Tools"
+                                                        image:[UIImage systemImageNamed:@"wrench.and.screwdriver"]
+                                                          tag:1];
+
+#if defined(YUZU_IOS_BOOTSTRAP)
+    EdenIOSRuntimeDemoController* playController =
+        [[EdenIOSRuntimeDemoController alloc] initWithRequestJIT:NO enableValidationLayers:NO];
+    UINavigationController* playNav = [[UINavigationController alloc] initWithRootViewController:playController];
+    playNav.tabBarItem = [[UITabBarItem alloc] initWithTitle:@"Play"
+                                                        image:[UIImage systemImageNamed:@"gamecontroller.fill"]
+                                                          tag:0];
+
+    UITabBarController* tabBar = [[UITabBarController alloc] init];
+    tabBar.viewControllers = @[playNav, toolsNav];
+    tabBar.selectedIndex = 0;
+    self.window.rootViewController = tabBar;
+#else
+    self.window.rootViewController = toolsNav;
+#endif
+
     [self.window makeKeyAndVisible];
 
     return YES;
