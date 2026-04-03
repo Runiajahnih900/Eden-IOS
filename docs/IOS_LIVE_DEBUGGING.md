@@ -32,7 +32,8 @@ http://100.104.116.72:8787/log/
 
 Pilihan cara set endpoint dari app iOS:
 
-- Via demo UI: isi field `Live log endpoint` lalu tekan `Set Live Log`.
+- Via IPA shell UI: isi field `Live log endpoint` lalu tekan `Aktifkan Live Logging`.
+- Tombol `Kirim Ping` mengirim event uji langsung ke server.
 - Via kode wrapper:
 
 ```objc
@@ -44,6 +45,23 @@ Pilihan cara set endpoint dari app iOS:
 
 Saat `Start`, `Tick`, `Stop`, atau event runtime lain terjadi, terminal Windows akan menampilkan baris log real-time beserta report.
 Server menerima banyak source sekaligus, jadi log iPad dan komputer kerja bisa tampil bersamaan.
+
+Pada IPA shell terbaru, event berikut juga otomatis terkirim:
+- `app_open`
+- `heartbeat` periodik (default 12 detik)
+- `set_log_endpoint`
+- `manual_ping`
+- `update_available` saat feed update mendeteksi versi lebih baru
+
+## 4b) Live update notifier (notifikasi update otomatis)
+
+Di UI app, field `URL update feed` bisa diisi endpoint JSON update.
+Default saat ini: GitHub Releases repo ini.
+
+Perilaku:
+- App cek update otomatis (default 90 detik) + bisa manual via `Cek Update Sekarang`.
+- Jika versi feed lebih baru dari versi app, app tampilkan popup notifikasi update.
+- Jika feed menyediakan `html_url`, tombol `Buka Link Update` akan membuka halaman update.
 
 ## 5) Uji cepat koneksi (opsional)
 

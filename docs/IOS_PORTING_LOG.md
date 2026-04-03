@@ -1098,3 +1098,20 @@ File:
 - Added `-framework CoreGraphics` to `eden-ios-app` link libraries.
 - Resolves linker error for `_CGRectZero` referenced from `ios_app_main.m`.
 
+### 80) Activate live logging and live update notifier in IPA shell UI
+File:
+- `src/ios/ios_app_main.m`
+
+- Replaced static placeholder UI with operational live-communication screen:
+  - configurable live log endpoint field + save action
+  - manual ping button
+  - configurable live update feed URL + save action
+  - manual update check button
+  - runtime status label
+- Added periodic live logging heartbeat (default every 12s) to existing TCP log receiver format.
+- Added live update polling (default every 90s) with support for GitHub Releases JSON:
+  - reads `tag_name` / `body` / `html_url`
+  - compares against local app version
+  - shows update alert popup when newer version is detected
+  - emits `update_available` event to live log endpoint for cross-device coordination.
+
