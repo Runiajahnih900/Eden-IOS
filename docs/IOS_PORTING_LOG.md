@@ -1242,3 +1242,15 @@ File:
 - Purpose: address run #77 linker failure on iOS app link stage:
   - `ld: library 'lz4' not found`.
 
+### 91) Force bundled zstd target path for iOS runtime-linked app build
+File:
+- `CMakeLists.txt`
+
+- Added iOS-specific force-bundled setting for zstd:
+  - `zstd_FORCE_BUNDLED=ON`.
+- Reworked zstd alias creation to use concrete target existence instead of only `zstd_ADDED`:
+  - prefer `libzstd_static` and expose both `zstd::zstd` + `zstd::libzstd` aliases.
+  - fallback to `zstd` target when static target is unavailable.
+- Purpose: address run #78 linker failure on iOS app link stage:
+  - `ld: library 'zstd' not found`.
+
