@@ -232,6 +232,27 @@ jobs:
             if [ -n "$linker_snippet" ]; then
               echo "::error title=Linker symbols::$linker_snippet"
             fi
+
+            first_linker_line=$(grep -nE "Undefined symbols for architecture|symbol\(s\) not found|ld: error|clang: error: linker command failed" build-ios/build.log | head -n 1 | cut -d: -f1 || true)
+            if [ -n "$first_linker_line" ]; then
+              start_line=$((first_linker_line-40))
+              if [ "$start_line" -lt 1 ]; then
+                start_line=1
+              fi
+              end_line=$((first_linker_line+25))
+              linker_context=$(sed -n "${start_line},${end_line}p" build-ios/build.log | tr '\n' '|' | sed 's/|$//' | cut -c1-7000)
+              if [ -n "$linker_context" ]; then
+                echo "::error title=Linker context::$linker_context"
+              fi
+
+              {
+                echo "### Linker context"
+                echo '```text'
+                sed -n "${start_line},${end_line}p" build-ios/build.log || true
+                echo '```'
+                echo
+              } >> "$GITHUB_STEP_SUMMARY"
+            fi
           fi
 
           echo "::group::Reconfigure with --debug-find"

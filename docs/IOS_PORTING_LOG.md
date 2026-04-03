@@ -1152,3 +1152,19 @@ Files:
   - configure uses compiler launchers for C/C++/ObjC/ObjC++
   - warm-cache reruns are expected to be significantly faster than cold builds.
 
+### 84) Add public linker-context annotation for failed iOS CI builds
+File:
+- `.github/workflows/ios-bootstrap.yml`
+
+- Extended failure diagnostics to emit a generic linker-context annotation even when
+  `Undefined symbols for architecture` is not matched.
+- New extraction scans for:
+  - `Undefined symbols for architecture`
+  - `symbol(s) not found`
+  - `ld: error`
+  - `clang: error: linker command failed`
+- Adds a contextual log window around the first linker marker to:
+  - `::error title=Linker context::...` (public annotation)
+  - `GITHUB_STEP_SUMMARY` (human-readable snippet)
+- Purpose: unblock autonomous fix loops when artifact/log download requires authentication.
+
