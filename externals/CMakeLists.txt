@@ -191,7 +191,22 @@ AddJsonPackage(spirv-tools)
 
 if (SPIRV-Tools_ADDED)
     add_library(SPIRV-Tools::SPIRV-Tools ALIAS SPIRV-Tools-static)
-    target_link_libraries(SPIRV-Tools-static PRIVATE SPIRV-Tools-opt SPIRV-Tools-link)
+
+    if (TARGET SPIRV-Tools-opt)
+        target_link_libraries(SPIRV-Tools-static PRIVATE SPIRV-Tools-opt)
+    elseif (TARGET SPIRV-Tools::SPIRV-Tools-opt)
+        target_link_libraries(SPIRV-Tools-static PRIVATE SPIRV-Tools::SPIRV-Tools-opt)
+    else()
+        message(STATUS "SPIRV-Tools-opt target not found; skipping explicit opt linkage")
+    endif()
+
+    if (TARGET SPIRV-Tools-link)
+        target_link_libraries(SPIRV-Tools-static PRIVATE SPIRV-Tools-link)
+    elseif (TARGET SPIRV-Tools::SPIRV-Tools-link)
+        target_link_libraries(SPIRV-Tools-static PRIVATE SPIRV-Tools::SPIRV-Tools-link)
+    else()
+        message(STATUS "SPIRV-Tools-link target not found; skipping explicit link linkage")
+    endif()
 endif()
 
 # Catch2

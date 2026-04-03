@@ -1195,3 +1195,15 @@ File:
   - `target_link_libraries(yuzu-ios-bootstrap PRIVATE ${PLATFORM_LIBRARIES})`
 - Purpose: reduce runtime-linked app linker failures caused by unresolved symbols that are provided by frontend/runtime support libraries but were not previously in the iOS bootstrap target link closure.
 
+### 87) Fix SPIRV tools linkage fallback that emitted missing `-lSPIRV-Tools-opt`
+File:
+- `externals/CMakeLists.txt`
+
+- Updated `SPIRV-Tools-static` post-link wiring to only add opt/link components when corresponding targets actually exist.
+- Added guarded target resolution for both plain and namespaced target names:
+  - `SPIRV-Tools-opt` / `SPIRV-Tools::SPIRV-Tools-opt`
+  - `SPIRV-Tools-link` / `SPIRV-Tools::SPIRV-Tools-link`
+- Added status messages when optional targets are not present, instead of implicitly passing raw library names to linker.
+- Purpose: resolve iOS CI linker failure observed in run #74:
+  - `ld: library 'SPIRV-Tools-opt' not found`.
+
