@@ -1271,15 +1271,17 @@ Files:
 ### 93) Fix iOS undefined symbols for JIT loop and VulkanMemoryAllocator
 Files:
 - `src/core/hle/service/services.cpp`
+- `src/video_core/CMakeLists.txt`
+- `src/video_core/vulkan_common/vma_impl.cpp`
 - `src/ios/CMakeLists.txt`
-- `src/ios/ios_vma_impl.cpp`
 
 - Guarded JIT service registration out of iOS path in service loop bootstrap:
   - skip `{ "jit", &JIT::LoopProcess }` when `YUZU_PLATFORM_IOS` is defined.
   - aligns runtime service registration with core iOS build path where JIT sources are excluded.
-- Added dedicated iOS VMA implementation translation unit:
-  - `ios_vma_impl.cpp` defines `VMA_IMPLEMENTATION` and includes `video_core/vulkan_common/vma.h`.
-  - wired into `yuzu-ios-bootstrap` iOS-only sources.
+- Added dedicated iOS VMA implementation translation unit under `video_core`:
+  - `vulkan_common/vma_impl.cpp` defines `VMA_IMPLEMENTATION` and includes `video_core/vulkan_common/vma.h`.
+  - wired into `video_core` iOS-only sources.
+- Removed temporary `src/ios/ios_vma_impl.cpp` path from iOS bootstrap target wiring.
 - Purpose: address run #80 linker errors for:
   - `Service::JIT::LoopProcess(Core::System&)`
   - `_vma*` symbols (e.g. `vmaAllocateMemory`).

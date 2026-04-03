@@ -326,6 +326,10 @@ endif()
 target_link_libraries(video_core PUBLIC common core)
 target_link_libraries(video_core PUBLIC glad shader_recompiler stb bc_decoder gpu_logging)
 
+if (PLATFORM_IOS)
+    target_sources(video_core PRIVATE vulkan_common/vma_impl.cpp)
+endif()
+
 if (YUZU_USE_EXTERNAL_FFMPEG)
     add_dependencies(video_core ffmpeg-build)
 endif()
