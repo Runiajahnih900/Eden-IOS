@@ -3,6 +3,11 @@
 
 #import <UIKit/UIKit.h>
 
+#if defined(YUZU_IOS_BOOTSTRAP)
+#import "ios_bootstrap_objc_bridge.h"
+#import "ios_runtime_objc_bridge.h"
+#endif
+
 static NSString* const EdenLiveLogEndpointDefaultsKey = @"EdenLiveLogEndpoint";
 static NSString* const EdenLiveUpdateURLDefaultsKey = @"EdenLiveUpdateURL";
 static NSString* const EdenDefaultLiveUpdateURL = @"https://api.github.com/repos/Runiajahnih900/Eden-IOS/releases/latest";
@@ -104,6 +109,21 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
     [pingButton setTitle:@"Kirim Ping" forState:UIControlStateNormal];
     [pingButton addTarget:self action:@selector(onPingNow) forControlEvents:UIControlEventTouchUpInside];
 
+    UIButton* startRuntimeButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    startRuntimeButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [startRuntimeButton setTitle:@"Mulai Runtime" forState:UIControlStateNormal];
+    [startRuntimeButton addTarget:self action:@selector(onStartRuntimeNow) forControlEvents:UIControlEventTouchUpInside];
+
+    UIButton* stopRuntimeButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    stopRuntimeButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [stopRuntimeButton setTitle:@"Hentikan Runtime" forState:UIControlStateNormal];
+    [stopRuntimeButton addTarget:self action:@selector(onStopRuntimeNow) forControlEvents:UIControlEventTouchUpInside];
+
+    UIButton* refreshRuntimeButton = [UIButton buttonWithType:UIButtonTypeSystem];
+    refreshRuntimeButton.translatesAutoresizingMaskIntoConstraints = NO;
+    [refreshRuntimeButton setTitle:@"Status Runtime" forState:UIControlStateNormal];
+    [refreshRuntimeButton addTarget:self action:@selector(onRefreshRuntimeNow) forControlEvents:UIControlEventTouchUpInside];
+
     self.liveUpdateField = [[UITextField alloc] init];
     self.liveUpdateField.translatesAutoresizingMaskIntoConstraints = NO;
     self.liveUpdateField.borderStyle = UITextBorderStyleRoundedRect;
@@ -136,6 +156,12 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
     logButtons.spacing = 10.0;
     logButtons.distribution = UIStackViewDistributionFillEqually;
 
+    UIStackView* runtimeButtons = [[UIStackView alloc] initWithArrangedSubviews:@[startRuntimeButton, stopRuntimeButton, refreshRuntimeButton]];
+    runtimeButtons.translatesAutoresizingMaskIntoConstraints = NO;
+    runtimeButtons.axis = UILayoutConstraintAxisHorizontal;
+    runtimeButtons.spacing = 8.0;
+    runtimeButtons.distribution = UIStackViewDistributionFillEqually;
+
     UIStackView* updateButtons = [[UIStackView alloc] initWithArrangedSubviews:@[saveUpdateButton, checkUpdateButton]];
     updateButtons.translatesAutoresizingMaskIntoConstraints = NO;
     updateButtons.axis = UILayoutConstraintAxisHorizontal;
@@ -146,6 +172,7 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
         introLabel,
         self.liveLogField,
         logButtons,
+        runtimeButtons,
         self.liveUpdateField,
         updateButtons,
         self.statusLabel,
@@ -168,6 +195,12 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
 - (void)dealloc {
     [self.heartbeatTimer invalidate];
     [self.updateTimer invalidate];
+#if defined(YUZU_IOS_BOOTSTRAP)
+    [[NSNotificationCenter defaultCenter] removeObserver:self
+                                                    name:EdenIOSRuntimeEventNotification
+                                                  object:nil];
+    [EdenIOSRuntimeBridge setEventNotificationsEnabled:NO];
+#endif
 }
 
 - (NSString*)currentShortVersion {
@@ -195,6 +228,9 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
 - (void)onSaveLiveLogEndpoint {
     NSString* endpoint = [self savedLiveLogEndpoint];
     [[NSUserDefaults standardUserDefaults] setObject:endpoint forKey:EdenLiveLogEndpointDefaultsKey];
+#if defined(YUZU_IOS_BOOTSTRAP)
+    [EdenIOSRuntimeBridge setRemoteDebugLogEndpoint:endpoint];
+#endif
     [self sendLiveLogEvent:@"set_log_endpoint" report:@"endpoint-updated" extra:nil];
     self.statusLabel.text = [NSString stringWithFormat:@"Status: live logging endpoint aktif -> %@", endpoint.length > 0 ? endpoint : @"(kosong)"];
 }
@@ -214,8 +250,68 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
     [self checkForUpdatesNow:YES];
 }
 
+- (void)onStartRuntimeNow {
+#if defined(YUZU_IOS_BOOTSTRAP)
+    [EdenIOSRuntimeBridge setRemoteDebugLogEndpoint:[self savedLiveLogEndpoint]];
+    EdenIOSRuntimeBridgeResult* result = [EdenIOSRuntimeBridge startWithRequestJIT:NO
+                                                           enableValidationLayers:NO
+                                                             startExecutionThread:NO
+                                                                         gamePath:nil];
+    self.statusLabel.text = [NSString stringWithFormat:@"Status runtime: %@ (running=%@)", result.report, result.running ? @"yes" : @"no"];
+    NSDictionary* extra = @{
+        @"running": @(result.running),
+        @"sessionID": @(result.sessionID),
+        @"tickCount": @(result.tickCount),
+    };
+    [self sendLiveLogEvent:@"runtime_start" report:result.report extra:extra];
+#else
+    self.statusLabel.text = @"Status: runtime emulator belum ditautkan di build ini.";
+#endif
+}
+
+- (void)onStopRuntimeNow {
+#if defined(YUZU_IOS_BOOTSTRAP)
+    [EdenIOSRuntimeBridge stop];
+    EdenIOSRuntimeBridgeResult* state = [EdenIOSRuntimeBridge state];
+    self.statusLabel.text = [NSString stringWithFormat:@"Status runtime: stop -> %@", state.report];
+    [self sendLiveLogEvent:@"runtime_stop" report:state.report extra:nil];
+#else
+    self.statusLabel.text = @"Status: runtime emulator belum ditautkan di build ini.";
+#endif
+}
+
+- (void)onRefreshRuntimeNow {
+#if defined(YUZU_IOS_BOOTSTRAP)
+    EdenIOSRuntimeBridgeResult* state = [EdenIOSRuntimeBridge state];
+    self.statusLabel.text = [NSString stringWithFormat:@"Runtime running=%@ session=%lu tick=%lu", state.running ? @"yes" : @"no", (unsigned long)state.sessionID, (unsigned long)state.tickCount];
+#else
+    self.statusLabel.text = @"Status: runtime emulator belum ditautkan di build ini.";
+#endif
+}
+
 - (void)startLiveServices {
     [self sendLiveLogEvent:@"app_open" report:@"live-services-started" extra:nil];
+
+#if defined(YUZU_IOS_BOOTSTRAP)
+    [EdenIOSRuntimeBridge setRemoteDebugLogEndpoint:[self savedLiveLogEndpoint]];
+    [EdenIOSRuntimeBridge setEventNotificationsEnabled:YES];
+    [[NSNotificationCenter defaultCenter] addObserver:self
+                                             selector:@selector(onRuntimeEvent:)
+                                                 name:EdenIOSRuntimeEventNotification
+                                               object:nil];
+
+    EdenIOSBootstrapBridgeResult* preflight = [EdenIOSBootstrapBridge prepareWithRequestJIT:NO
+                                                                     enableValidationLayers:NO
+                                                                                   gamePath:nil];
+    NSDictionary* extra = @{
+        @"ready": @(preflight.ready),
+        @"onIOS": @(preflight.onIOS),
+        @"moltenVKAvailable": @(preflight.moltenVKAvailable),
+        @"gamePathValid": @(preflight.gamePathValid),
+    };
+    [self sendLiveLogEvent:@"runtime_preflight" report:preflight.report extra:extra];
+    self.statusLabel.text = [NSString stringWithFormat:@"Status preflight: %@", preflight.report];
+#endif
 
     self.heartbeatTimer = [NSTimer scheduledTimerWithTimeInterval:EdenHeartbeatIntervalSeconds
                                                             target:self
@@ -230,6 +326,33 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
                                                         repeats:YES];
 
     [self checkForUpdatesNow:NO];
+}
+
+- (void)onRuntimeEvent:(NSNotification*)notification {
+#if defined(YUZU_IOS_BOOTSTRAP)
+    NSDictionary* userInfo = notification.userInfo;
+    NSString* report = [userInfo[EdenIOSRuntimeEventReportKey] isKindOfClass:[NSString class]]
+                           ? userInfo[EdenIOSRuntimeEventReportKey]
+                           : @"";
+    NSString* type = [userInfo[EdenIOSRuntimeEventTypeKey] isKindOfClass:[NSString class]]
+                         ? userInfo[EdenIOSRuntimeEventTypeKey]
+                         : @"unknown";
+    NSNumber* running = [userInfo[EdenIOSRuntimeEventRunningKey] isKindOfClass:[NSNumber class]]
+                            ? userInfo[EdenIOSRuntimeEventRunningKey]
+                            : @NO;
+    NSNumber* sessionID = [userInfo[EdenIOSRuntimeEventSessionIDKey] isKindOfClass:[NSNumber class]]
+                              ? userInfo[EdenIOSRuntimeEventSessionIDKey]
+                              : @0;
+    NSNumber* tickCount = [userInfo[EdenIOSRuntimeEventTickCountKey] isKindOfClass:[NSNumber class]]
+                              ? userInfo[EdenIOSRuntimeEventTickCountKey]
+                              : @0;
+    self.statusLabel.text = [NSString stringWithFormat:@"Runtime[%@] running=%@ sid=%@ tick=%@", type, running.boolValue ? @"yes" : @"no", sessionID, tickCount];
+    if (report.length > 0) {
+        [self sendLiveLogEvent:@"runtime_event" report:report extra:@{ @"type": type }];
+    }
+#else
+    (void)notification;
+#endif
 }
 
 - (void)onHeartbeatTick {

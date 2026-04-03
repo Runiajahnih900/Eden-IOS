@@ -1124,3 +1124,17 @@ File:
   - non-ARC: `__unsafe_unretained typeof(self) weakSelf = self;`
 - Resolves CI compile error on manual reference counting builds.
 
+### 82) Re-enable runtime-linked IPA path and exercise bootstrap bridge in app UI
+Files:
+- `.github/workflows/ios-bootstrap.yml`
+- `src/ios/ios_app_main.m`
+
+- Switched IPA CI configure mode from shell-only to runtime-linked app:
+  - `-DIOS_APP_LINK_BOOTSTRAP=ON` (main configure + debug-find replay).
+- Updated iOS app shell to call bootstrap/runtime Objective-C bridges when linked:
+  - import `ios_bootstrap_objc_bridge.h` and `ios_runtime_objc_bridge.h` under `YUZU_IOS_BOOTSTRAP`.
+  - add runtime controls in UI (`Mulai Runtime`, `Hentikan Runtime`, `Status Runtime`).
+  - run bootstrap preflight on app startup and report results to live log endpoint.
+  - subscribe to runtime event notifications and reflect state in status label.
+  - keep no-op fallback messaging when runtime linkage is disabled.
+
