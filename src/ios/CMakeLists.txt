@@ -65,6 +65,7 @@ if (PLATFORM_IOS)
 
     target_link_libraries(eden-ios-app PRIVATE
         "-framework Foundation"
+        "-framework CoreGraphics"
         "-framework UIKit")
 
     if (IOS_APP_LINK_BOOTSTRAP)

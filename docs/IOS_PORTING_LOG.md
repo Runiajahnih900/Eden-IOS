@@ -1091,3 +1091,10 @@ File:
   - `XCODE_ATTRIBUTE_CLANG_ENABLE_OBJC_ARC YES`
 - Purpose: resolve unresolved ObjC runtime/link symbols by using Objective-C link path deterministically.
 
+### 79) Fix missing CoreGraphics symbol in IPA app link stage
+File:
+- `src/ios/CMakeLists.txt`
+
+- Added `-framework CoreGraphics` to `eden-ios-app` link libraries.
+- Resolves linker error for `_CGRectZero` referenced from `ios_app_main.m`.
+
