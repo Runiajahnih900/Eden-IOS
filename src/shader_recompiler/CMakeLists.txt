@@ -243,7 +243,18 @@ add_library(shader_recompiler STATIC
 
 )
 
-target_link_libraries(shader_recompiler PUBLIC common fmt::fmt sirit::sirit SPIRV-Tools::SPIRV-Tools)
+set(SHADER_RECOMPILER_SPIRV_TARGET "")
+if (TARGET SPIRV-Tools::SPIRV-Tools)
+    set(SHADER_RECOMPILER_SPIRV_TARGET SPIRV-Tools::SPIRV-Tools)
+elseif (TARGET SPIRV-Tools-static)
+    set(SHADER_RECOMPILER_SPIRV_TARGET SPIRV-Tools-static)
+elseif (TARGET SPIRV-Tools)
+    set(SHADER_RECOMPILER_SPIRV_TARGET SPIRV-Tools)
+else()
+    message(FATAL_ERROR "No SPIRV-Tools target found for shader_recompiler")
+endif()
+
+target_link_libraries(shader_recompiler PUBLIC common fmt::fmt sirit::sirit ${SHADER_RECOMPILER_SPIRV_TARGET})
 
 if (MSVC)
     target_compile_options(shader_recompiler PRIVATE

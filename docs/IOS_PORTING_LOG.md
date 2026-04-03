@@ -1216,3 +1216,17 @@ File:
   - non-iOS: keep existing `find_package(SPIRV-Tools)` behavior.
 - Purpose: prevent iOS cross-builds from accidentally using pkg-config/system SPIRV link flags (notably plain `-lSPIRV-Tools-opt`) that are unavailable on iOS toolchain link paths.
 
+### 89) Harden SPIRV target wiring for iOS configure path
+Files:
+- `externals/CMakeLists.txt`
+- `src/shader_recompiler/CMakeLists.txt`
+
+- Externals SPIRV setup now keys off real target existence, not only `SPIRV-Tools_ADDED`:
+  - for iOS, force `SPIRV-Tools_FORCE_BUNDLED=ON` in externals path.
+  - create `SPIRV-Tools::SPIRV-Tools` alias from available bundled targets (`SPIRV-Tools-static` fallback `SPIRV-Tools`).
+- Shader recompiler SPIRV link target is now resolved dynamically:
+  - prefer `SPIRV-Tools::SPIRV-Tools`
+  - fallback to `SPIRV-Tools-static` or `SPIRV-Tools`
+  - emit explicit fatal configure message if none exist.
+- Purpose: resolve run #76 configure failure at `src/shader_recompiler/CMakeLists.txt:246` while keeping iOS on bundled SPIRV target path.
+

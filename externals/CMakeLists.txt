@@ -187,11 +187,21 @@ else()
 endif()
 
 # SPIRV Tools
+if (PLATFORM_IOS)
+    set(SPIRV-Tools_FORCE_BUNDLED ON CACHE BOOL "Force bundled SPIRV-Tools on iOS" FORCE)
+endif()
+
 AddJsonPackage(spirv-tools)
 
-if (SPIRV-Tools_ADDED)
-    add_library(SPIRV-Tools::SPIRV-Tools ALIAS SPIRV-Tools-static)
+if (NOT TARGET SPIRV-Tools::SPIRV-Tools)
+    if (TARGET SPIRV-Tools-static)
+        add_library(SPIRV-Tools::SPIRV-Tools ALIAS SPIRV-Tools-static)
+    elseif (TARGET SPIRV-Tools)
+        add_library(SPIRV-Tools::SPIRV-Tools ALIAS SPIRV-Tools)
+    endif()
+endif()
 
+if (TARGET SPIRV-Tools-static)
     if (TARGET SPIRV-Tools-opt)
         target_link_libraries(SPIRV-Tools-static PRIVATE SPIRV-Tools-opt)
     elseif (TARGET SPIRV-Tools::SPIRV-Tools-opt)
