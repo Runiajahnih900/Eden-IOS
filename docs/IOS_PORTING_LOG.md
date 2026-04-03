@@ -1207,3 +1207,12 @@ File:
 - Purpose: resolve iOS CI linker failure observed in run #74:
   - `ld: library 'SPIRV-Tools-opt' not found`.
 
+### 88) Skip system SPIRV-Tools discovery on iOS bootstrap profile
+File:
+- `CMakeLists.txt`
+
+- In the shared dependency discovery block (`NOT YUZU_STATIC_ROOM`), SPIRV tools lookup is now platform-aware:
+  - iOS: skip `find_package(SPIRV-Tools)` and rely on bundled SPIRV targets from `externals`.
+  - non-iOS: keep existing `find_package(SPIRV-Tools)` behavior.
+- Purpose: prevent iOS cross-builds from accidentally using pkg-config/system SPIRV link flags (notably plain `-lSPIRV-Tools-opt`) that are unavailable on iOS toolchain link paths.
+
