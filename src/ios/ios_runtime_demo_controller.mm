@@ -7,10 +7,6 @@
 #import "ios_runtime_objc_bridge.h"
 #import "ios_runtime_view_model.h"
 
-#if __has_include(<UniformTypeIdentifiers/UniformTypeIdentifiers.h>)
-#import <UniformTypeIdentifiers/UniformTypeIdentifiers.h>
-#endif
-
 static NSString* const EdenLastGamePathDefaultsKey = @"EdenLastGamePath";
 static NSString* const EdenGraphicsRendererDefaultsKey = @"EdenGraphicsRenderer";
 static NSString* const EdenGraphicsResolutionDefaultsKey = @"EdenGraphicsResolution";
@@ -535,32 +531,15 @@ static NSArray<NSString*>* EdenSupportedGameExtensions(void) {
 - (void)presentImporterForMode:(EdenImportMode)mode allowsMultiple:(BOOL)allowsMultiple {
     self.importMode = mode;
 
-    UIDocumentPickerViewController* picker = nil;
-    if (@available(iOS 14.0, *)) {
-#if __has_include(<UniformTypeIdentifiers/UniformTypeIdentifiers.h>)
-        NSMutableArray* contentTypes = [NSMutableArray array];
-        if (mode == EdenImportModeFirmware) {
-            [contentTypes addObject:UTTypeFolder];
-            [contentTypes addObject:UTTypeZIPArchive];
-            [contentTypes addObject:UTTypeItem];
-        } else {
-            [contentTypes addObject:UTTypeItem];
-        }
-        picker = [[UIDocumentPickerViewController alloc] initForOpeningContentTypes:contentTypes
-                                                                               asCopy:YES];
-#endif
-    }
-
-    if (picker == nil) {
-        NSArray<NSString*>* documentTypes =
-            mode == EdenImportModeFirmware
-                ? @[@"public.folder", @"public.zip-archive", @"public.item"]
-                : @[@"public.item"];
-        UIDocumentPickerMode pickerMode =
-            mode == EdenImportModeFirmware ? UIDocumentPickerModeOpen : UIDocumentPickerModeImport;
-        picker = [[UIDocumentPickerViewController alloc] initWithDocumentTypes:documentTypes
-                                                                         inMode:pickerMode];
-    }
+    NSArray<NSString*>* documentTypes =
+        mode == EdenImportModeFirmware
+            ? @[@"public.folder", @"public.zip-archive", @"public.data", @"public.item"]
+            : @[@"public.item"];
+    UIDocumentPickerMode pickerMode =
+        mode == EdenImportModeFirmware ? UIDocumentPickerModeOpen : UIDocumentPickerModeImport;
+    UIDocumentPickerViewController* picker =
+        [[UIDocumentPickerViewController alloc] initWithDocumentTypes:documentTypes
+                                                                inMode:pickerMode];
 
     picker.delegate = self;
     picker.allowsMultipleSelection = allowsMultiple;
