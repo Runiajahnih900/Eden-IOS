@@ -1115,3 +1115,12 @@ File:
   - shows update alert popup when newer version is detected
   - emits `update_available` event to live log endpoint for cross-device coordination.
 
+### 81) Fix MRC compatibility for async update-check callback capture
+File:
+- `src/ios/ios_app_main.m`
+
+- Replaced unconditional `__weak` capture with ARC/MRC guard:
+  - ARC: `__weak typeof(self) weakSelf = self;`
+  - non-ARC: `__unsafe_unretained typeof(self) weakSelf = self;`
+- Resolves CI compile error on manual reference counting builds.
+

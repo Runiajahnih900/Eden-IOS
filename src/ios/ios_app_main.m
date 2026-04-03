@@ -302,7 +302,11 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
         return;
     }
 
+#if __has_feature(objc_arc)
     __weak typeof(self) weakSelf = self;
+#else
+    __unsafe_unretained typeof(self) weakSelf = self;
+#endif
     [[[NSURLSession sharedSession] dataTaskWithURL:url
                                   completionHandler:^(NSData* data, NSURLResponse* response, NSError* error) {
         (void)response;
