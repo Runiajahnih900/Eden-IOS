@@ -195,21 +195,24 @@ jobs:
 
           echo "::group::Build hard errors (short)"
           if [ -f build-ios/build.log ]; then
-            grep -nEi "Undefined symbols for architecture|symbol\(s\) not found|framework not found|library not found|duplicate symbol|error:|fatal error:|undefined reference|ld: error|ninja: build stopped|subcommand failed" build-ios/build.log | tail -n 120 || true
+            grep -nEi "Undefined symbols for architecture|symbol\(s\) not found|framework not found|library not found|duplicate symbol|FAILED:|error:|fatal error:|undefined reference|ld: error|ninja: build stopped|subcommand failed" build-ios/build.log | tail -n 120 || true
             first_build_error=$(grep -nE "^Undefined symbols for architecture|symbol\(s\) not found|^[[:space:]]*ld: |clang: error: linker command failed|collect2: error: ld returned|ninja: build stopped|ninja: error:" build-ios/build.log | head -n 1 || true)
+            if [ -z "$first_build_error" ]; then
+              first_build_error=$(grep -nE "^FAILED: " build-ios/build.log | head -n 1 || true)
+            fi
             if [ -z "$first_build_error" ]; then
               first_build_error=$(grep -nE ":[0-9]+:[0-9]+: (fatal )?error:|: error:|fatal error:" build-ios/build.log | head -n 1 || true)
             fi
             {
               echo "### Build hard errors"
               echo '```text'
-              grep -nEi "Undefined symbols for architecture|symbol\(s\) not found|framework not found|library not found|duplicate symbol|error:|fatal error:|undefined reference|ld: error|ninja: build stopped|subcommand failed" build-ios/build.log | tail -n 120 || true
+              grep -nEi "Undefined symbols for architecture|symbol\(s\) not found|framework not found|library not found|duplicate symbol|FAILED:|error:|fatal error:|undefined reference|ld: error|ninja: build stopped|subcommand failed" build-ios/build.log | tail -n 120 || true
               echo '```'
               echo
               echo "### Build root cause snippet"
               echo '```text'
               awk '
-                /Undefined symbols for architecture|symbol\(s\) not found|^[[:space:]]*ld: |clang: error: linker command failed|collect2: error: ld returned|ninja: build stopped|ninja: error:|:[0-9]+:[0-9]+: (fatal )?error:|: error:|fatal error:/ {capture=1;left=20}
+                /Undefined symbols for architecture|symbol\(s\) not found|^[[:space:]]*ld: |clang: error: linker command failed|collect2: error: ld returned|^FAILED: |ninja: build stopped|ninja: error:|:[0-9]+:[0-9]+: (fatal )?error:|: error:|fatal error:/ {capture=1;left=20}
                 capture && left>0 {print; left--; if (left==0) capture=0}
               ' build-ios/build.log | head -n 140 || true
               echo '```'
@@ -236,7 +239,7 @@ jobs:
               echo "::error title=Linker symbols::$linker_snippet"
             fi
 
-            linker_key_lines=$(grep -nE "^Undefined symbols for architecture|symbol\(s\) not found|^[[:space:]]*ld: |clang: error: linker command failed|collect2: error: ld returned|ninja: build stopped|ninja: error:" build-ios/build.log | tail -n 40 || true)
+            linker_key_lines=$(grep -nE "^Undefined symbols for architecture|symbol\(s\) not found|^[[:space:]]*ld: |clang: error: linker command failed|collect2: error: ld returned|^FAILED: |ninja: build stopped|ninja: error:" build-ios/build.log | tail -n 40 || true)
             if [ -n "$linker_key_lines" ]; then
               linker_context=$(printf '%s\n' "$linker_key_lines" | tr '\n' '|' | sed 's/|$//' | cut -c1-7000)
               echo "::error title=Linker context::$linker_context"
@@ -247,6 +250,11 @@ jobs:
                 echo '```'
                 echo
               } >> "$GITHUB_STEP_SUMMARY"
+            fi
+
+            first_failed_command=$(grep -nE "^FAILED: " build-ios/build.log | head -n 1 || true)
+            if [ -n "$first_failed_command" ]; then
+              echo "::error title=First failed command::$first_failed_command"
             fi
 
             first_undefined_symbol=$(awk '

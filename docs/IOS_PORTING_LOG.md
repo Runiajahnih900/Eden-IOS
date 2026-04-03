@@ -1284,3 +1284,15 @@ Files:
   - `Service::JIT::LoopProcess(Core::System&)`
   - `_vma*` symbols (e.g. `vmaAllocateMemory`).
 
+### 94) Capture ninja `FAILED:` command lines in public CI diagnostics
+File:
+- `.github/workflows/ios-bootstrap.yml`
+
+- Expanded build-error extraction patterns to include `FAILED:` lines emitted by Ninja.
+- Added fallback precedence for first build error:
+  - if no linker marker is found, use first `FAILED:` line before generic `error:` matching.
+- Extended root-cause snippet/linker-context extraction to include `FAILED:` blocks.
+- Added explicit public annotation:
+  - `First failed command` from the first `FAILED:` line in `build-ios/build.log`.
+- Purpose: improve root-cause visibility when builds fail without explicit `ld:`/`error:` lines (as observed in run #81 annotations).
+
