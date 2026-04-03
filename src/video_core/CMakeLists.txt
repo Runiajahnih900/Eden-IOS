@@ -328,6 +328,8 @@ target_link_libraries(video_core PUBLIC glad shader_recompiler stb bc_decoder gp
 
 if (PLATFORM_IOS)
     target_sources(video_core PRIVATE vulkan_common/vma_impl.cpp)
+    set_source_files_properties(vulkan_common/vma_impl.cpp PROPERTIES
+        COMPILE_OPTIONS "-Wno-everything")
 endif()
 
 if (YUZU_USE_EXTERNAL_FFMPEG)

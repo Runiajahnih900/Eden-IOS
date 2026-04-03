@@ -1310,3 +1310,11 @@ File:
 - Purpose: mitigate flaky dependency-download failures seen in run #82 at
   `vulkanutilitylibraries-populate` download stage without requiring manual rerun.
 
+### 96) Suppress third-party warning noise for iOS VMA implementation unit
+File:
+- `src/video_core/CMakeLists.txt`
+
+- For iOS path, `vulkan_common/vma_impl.cpp` now has explicit compile option:
+  - `-Wno-everything`
+- Purpose: prevent strict warning policies from failing the dedicated VMA implementation translation unit (third-party `vk_mem_alloc` code path) before link-stage validation can proceed.
+
