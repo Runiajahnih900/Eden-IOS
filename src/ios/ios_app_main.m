@@ -2,6 +2,10 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
 #import <UIKit/UIKit.h>
+#include <fcntl.h>
+#include <signal.h>
+#include <stdio.h>
+#include <unistd.h>
 
 #if defined(YUZU_IOS_BOOTSTRAP)
 #import "ios_bootstrap_objc_bridge.h"
@@ -19,6 +23,170 @@ static NSString* const EdenDefaultLiveUpdateURL = @"https://api.github.com/repos
 
 static NSTimeInterval const EdenHeartbeatIntervalSeconds = 12.0;
 static NSTimeInterval const EdenUpdateCheckIntervalSeconds = 90.0;
+static int EdenLaunchLogFD = -1;
+
+static NSString* EdenLaunchTimestamp(void) {
+    static NSDateFormatter* formatter = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        formatter = [[NSDateFormatter alloc] init];
+        formatter.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+        formatter.timeZone = [NSTimeZone timeZoneWithAbbreviation:@"UTC"];
+        formatter.dateFormat = @"yyyy-MM-dd HH:mm:ss.SSS 'UTC'";
+    });
+    return [formatter stringFromDate:[NSDate date]];
+}
+
+@interface EdenLaunchLogger : NSObject
+
+@property(nonatomic, copy) NSString* sessionDirectory;
+@property(nonatomic, copy) NSString* logFilePath;
+
++ (instancetype)shared;
+- (void)prepareForCurrentLaunch;
+- (void)appendLine:(NSString*)line;
+- (NSString*)sessionDirectoryPath;
+
+@end
+
+@implementation EdenLaunchLogger
+
++ (instancetype)shared {
+    static EdenLaunchLogger* shared = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        shared = [[EdenLaunchLogger alloc] init];
+    });
+    return shared;
+}
+
+- (void)prepareForCurrentLaunch {
+    NSString* documentsDirectory = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES).firstObject;
+    if (documentsDirectory.length == 0) {
+        return;
+    }
+
+    NSFileManager* fileManager = [NSFileManager defaultManager];
+    NSString* logsRoot = [documentsDirectory stringByAppendingPathComponent:@"eden-launch-logs"];
+    NSError* rootError = nil;
+    [fileManager createDirectoryAtPath:logsRoot withIntermediateDirectories:YES attributes:nil error:&rootError];
+    if (rootError != nil) {
+        return;
+    }
+
+    static NSDateFormatter* folderFormatter = nil;
+    static dispatch_once_t onceToken;
+    dispatch_once(&onceToken, ^{
+        folderFormatter = [[NSDateFormatter alloc] init];
+        folderFormatter.locale = [NSLocale localeWithLocaleIdentifier:@"en_US_POSIX"];
+        folderFormatter.timeZone = [NSTimeZone timeZoneWithAbbreviation:@"UTC"];
+        folderFormatter.dateFormat = @"yyyyMMdd-HHmmss-SSS";
+    });
+
+    NSString* folderName = [NSString stringWithFormat:@"launch-%@-%d", [folderFormatter stringFromDate:[NSDate date]], getpid()];
+    NSString* sessionDirectory = [logsRoot stringByAppendingPathComponent:folderName];
+    NSError* sessionError = nil;
+    [fileManager createDirectoryAtPath:sessionDirectory withIntermediateDirectories:YES attributes:nil error:&sessionError];
+    if (sessionError != nil) {
+        return;
+    }
+
+    NSString* logFilePath = [sessionDirectory stringByAppendingPathComponent:@"app.log"];
+    [@"" writeToFile:logFilePath atomically:YES encoding:NSUTF8StringEncoding error:nil];
+
+    NSString* latestPointer = [logsRoot stringByAppendingPathComponent:@"latest-launch.txt"];
+    [sessionDirectory writeToFile:latestPointer atomically:YES encoding:NSUTF8StringEncoding error:nil];
+
+    if (EdenLaunchLogFD >= 0) {
+        close(EdenLaunchLogFD);
+        EdenLaunchLogFD = -1;
+    }
+
+    EdenLaunchLogFD = open(logFilePath.UTF8String, O_WRONLY | O_APPEND);
+    self.sessionDirectory = sessionDirectory;
+    self.logFilePath = logFilePath;
+
+    [self appendLine:[NSString stringWithFormat:@"LAUNCH_BEGIN pid=%d", getpid()]];
+}
+
+- (void)appendLine:(NSString*)line {
+    if (line.length == 0 || self.logFilePath.length == 0) {
+        return;
+    }
+
+    NSString* record = [NSString stringWithFormat:@"[%@] %@\n", EdenLaunchTimestamp(), line];
+    NSData* data = [record dataUsingEncoding:NSUTF8StringEncoding];
+    if (data.length == 0) {
+        return;
+    }
+
+    if (EdenLaunchLogFD >= 0) {
+        write(EdenLaunchLogFD, data.bytes, data.length);
+    } else {
+        NSFileHandle* handle = [NSFileHandle fileHandleForWritingAtPath:self.logFilePath];
+        if (handle != nil) {
+            @try {
+                [handle seekToEndOfFile];
+                [handle writeData:data];
+                [handle closeFile];
+            } @catch (__unused NSException* ex) {
+            }
+        }
+    }
+
+    NSLog(@"%@", [record stringByTrimmingCharactersInSet:[NSCharacterSet newlineCharacterSet]]);
+}
+
+- (NSString*)sessionDirectoryPath {
+    return self.sessionDirectory ?: @"";
+}
+
+@end
+
+static void EdenUncaughtExceptionHandler(NSException* exception) {
+    NSString* reason = exception.reason ?: @"(no-reason)";
+    NSString* name = exception.name ?: @"(no-name)";
+    [[EdenLaunchLogger shared] appendLine:[NSString stringWithFormat:@"UNCAUGHT_EXCEPTION name=%@ reason=%@", name, reason]];
+
+    if (exception.callStackSymbols.count > 0) {
+        NSString* stack = [exception.callStackSymbols componentsJoinedByString:@" | "];
+        [[EdenLaunchLogger shared] appendLine:[NSString stringWithFormat:@"UNCAUGHT_EXCEPTION_STACK %@", stack]];
+    }
+}
+
+static void EdenSignalCrashHandler(int signalCode) {
+    if (EdenLaunchLogFD >= 0) {
+        char buffer[128];
+        int size = snprintf(buffer, sizeof(buffer), "[signal] fatal signal=%d\\n", signalCode);
+        if (size > 0) {
+            write(EdenLaunchLogFD, buffer, (size_t)size);
+        }
+    }
+
+    signal(signalCode, SIG_DFL);
+    raise(signalCode);
+}
+
+static void EdenInstallCrashHandlers(void) {
+    NSSetUncaughtExceptionHandler(&EdenUncaughtExceptionHandler);
+    signal(SIGABRT, EdenSignalCrashHandler);
+    signal(SIGILL, EdenSignalCrashHandler);
+    signal(SIGSEGV, EdenSignalCrashHandler);
+    signal(SIGFPE, EdenSignalCrashHandler);
+    signal(SIGBUS, EdenSignalCrashHandler);
+    signal(SIGPIPE, EdenSignalCrashHandler);
+    signal(SIGTRAP, EdenSignalCrashHandler);
+}
+
+static void EdenInitializeLaunchLogging(void) {
+    [[EdenLaunchLogger shared] prepareForCurrentLaunch];
+    [[EdenLaunchLogger shared] appendLine:[NSString stringWithFormat:@"APP_BUNDLE %@", [[NSBundle mainBundle] bundleIdentifier] ?: @"(unknown)"]];
+    [[EdenLaunchLogger shared] appendLine:[NSString stringWithFormat:@"APP_VERSION %@ (%@)",
+                                          [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleShortVersionString"] ?: @"0",
+                                          [[NSBundle mainBundle] objectForInfoDictionaryKey:@"CFBundleVersion"] ?: @"0"]];
+    EdenInstallCrashHandlers();
+    [[EdenLaunchLogger shared] appendLine:@"CRASH_HANDLERS_INSTALLED"];
+}
 
 static NSArray<NSNumber*>* EdenParseVersionComponents(NSString* versionString) {
     if (versionString.length == 0) {
@@ -81,6 +249,8 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
 
 - (void)viewDidLoad {
     [super viewDidLoad];
+
+    [[EdenLaunchLogger shared] appendLine:@"HOME_VIEW_DID_LOAD"];
 
     self.title = @"Eden iOS";
     self.view.backgroundColor = [UIColor systemBackgroundColor];
@@ -256,6 +426,7 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
 }
 
 - (void)onStartRuntimeNow {
+    [[EdenLaunchLogger shared] appendLine:@"ACTION_START_RUNTIME_TAPPED"];
 #if defined(YUZU_IOS_BOOTSTRAP)
     NSString* selectedGamePath = [[NSUserDefaults standardUserDefaults] stringForKey:EdenLastGamePathDefaultsKey] ?: @"";
     selectedGamePath = [selectedGamePath stringByTrimmingCharactersInSet:[NSCharacterSet whitespaceAndNewlineCharacterSet]];
@@ -297,6 +468,7 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
 }
 
 - (void)onStopRuntimeNow {
+    [[EdenLaunchLogger shared] appendLine:@"ACTION_STOP_RUNTIME_TAPPED"];
 #if defined(YUZU_IOS_BOOTSTRAP)
     [EdenIOSRuntimeBridge stop];
     EdenIOSRuntimeBridgeResult* state = [EdenIOSRuntimeBridge state];
@@ -308,6 +480,7 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
 }
 
 - (void)onRefreshRuntimeNow {
+    [[EdenLaunchLogger shared] appendLine:@"ACTION_REFRESH_RUNTIME_TAPPED"];
 #if defined(YUZU_IOS_BOOTSTRAP)
     EdenIOSRuntimeBridgeResult* state = [EdenIOSRuntimeBridge state];
     self.statusLabel.text = [NSString stringWithFormat:@"Runtime running=%@ session=%lu tick=%lu", state.running ? @"yes" : @"no", (unsigned long)state.sessionID, (unsigned long)state.tickCount];
@@ -317,6 +490,7 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
 }
 
 - (void)startLiveServices {
+    [[EdenLaunchLogger shared] appendLine:[NSString stringWithFormat:@"LIVE_SERVICES_START log_dir=%@", [[EdenLaunchLogger shared] sessionDirectoryPath]]];
     [self sendLiveLogEvent:@"app_open" report:@"live-services-started" extra:nil];
 
 #if defined(YUZU_IOS_BOOTSTRAP)
@@ -399,6 +573,8 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
 }
 
 - (void)sendLiveLogEvent:(NSString*)event report:(NSString*)report extra:(NSDictionary* _Nullable)extra {
+    [[EdenLaunchLogger shared] appendLine:[NSString stringWithFormat:@"LIVE_EVENT event=%@ report=%@", event ?: @"(null)", report ?: @""]];
+
     NSString* endpoint = [[NSUserDefaults standardUserDefaults] stringForKey:EdenLiveLogEndpointDefaultsKey];
     if (endpoint.length == 0) {
         return;
@@ -567,7 +743,7 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
 
 - (BOOL)application:(UIApplication*)application didFinishLaunchingWithOptions:(NSDictionary*)launchOptions {
     (void)application;
-    (void)launchOptions;
+    [[EdenLaunchLogger shared] appendLine:[NSString stringWithFormat:@"APP_DID_FINISH_LAUNCHING launchOptionsCount=%lu", (unsigned long)launchOptions.count]];
 
     self.window = [[UIWindow alloc] initWithFrame:[UIScreen mainScreen].bounds];
     EdenIOSHomeController* toolsController = [[EdenIOSHomeController alloc] init];
@@ -593,14 +769,44 @@ static BOOL EdenIsVersionNewer(NSString* candidateVersion, NSString* currentVers
 #endif
 
     [self.window makeKeyAndVisible];
+    [[EdenLaunchLogger shared] appendLine:@"WINDOW_VISIBLE"];
 
     return YES;
+}
+
+- (void)applicationDidBecomeActive:(UIApplication*)application {
+    (void)application;
+    [[EdenLaunchLogger shared] appendLine:@"APP_DID_BECOME_ACTIVE"];
+}
+
+- (void)applicationWillResignActive:(UIApplication*)application {
+    (void)application;
+    [[EdenLaunchLogger shared] appendLine:@"APP_WILL_RESIGN_ACTIVE"];
+}
+
+- (void)applicationDidEnterBackground:(UIApplication*)application {
+    (void)application;
+    [[EdenLaunchLogger shared] appendLine:@"APP_DID_ENTER_BACKGROUND"];
+}
+
+- (void)applicationWillEnterForeground:(UIApplication*)application {
+    (void)application;
+    [[EdenLaunchLogger shared] appendLine:@"APP_WILL_ENTER_FOREGROUND"];
+}
+
+- (void)applicationWillTerminate:(UIApplication*)application {
+    (void)application;
+    [[EdenLaunchLogger shared] appendLine:@"APP_WILL_TERMINATE"];
 }
 
 @end
 
 int main(int argc, char* argv[]) {
     @autoreleasepool {
-        return UIApplicationMain(argc, argv, nil, NSStringFromClass([EdenIOSAppDelegate class]));
+        EdenInitializeLaunchLogging();
+        [[EdenLaunchLogger shared] appendLine:[NSString stringWithFormat:@"UIApplicationMain_BEGIN argc=%d", argc]];
+        int exitCode = UIApplicationMain(argc, argv, nil, NSStringFromClass([EdenIOSAppDelegate class]));
+        [[EdenLaunchLogger shared] appendLine:[NSString stringWithFormat:@"UIApplicationMain_END exitCode=%d", exitCode]];
+        return exitCode;
     }
 }

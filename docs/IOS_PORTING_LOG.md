@@ -1394,3 +1394,19 @@ File:
 - Start button is now setup-aware and blocks launch until keys + firmware + game selection are ready.
 - Purpose: match standard Switch-emulator onboarding expectations and prevent tap-to-crash behavior during initial bring-up.
 
+### 101) Add per-launch local crash log folder for startup/UI crash triage
+File:
+- `src/ios/ios_app_main.m`
+
+- Added launch logger that creates a dedicated folder on every app open:
+  - `Documents/eden-launch-logs/launch-<UTC timestamp>-<pid>/app.log`
+  - updates pointer file: `Documents/eden-launch-logs/latest-launch.txt`
+- Added early app lifecycle trace points written to local log:
+  - app launch begin/end
+  - app delegate lifecycle (`didFinishLaunching`, active/background transitions, terminate)
+  - key UI/runtime actions in tools controller
+- Added crash capture hooks for early diagnostics:
+  - `NSSetUncaughtExceptionHandler` for Objective-C exceptions (with call stack)
+  - POSIX signal handlers (`SIGABRT`, `SIGSEGV`, `SIGBUS`, etc.) appending fatal signal markers
+- Purpose: provide deterministic on-device logs even when UI does not appear, so crash cause can be identified from IPA runtime behavior.
+
